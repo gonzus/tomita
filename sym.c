@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "util.h"
 #include "mem.h"
@@ -6,11 +7,34 @@
 #include "sym.h"
 
 #define HASH_MAX 0x100
+#define MAX_SYM 0x100
+
+struct Item {
+  Symbol LHS;
+  Symbol* RHS;
+  Symbol* Pos;
+};
+
+struct Items {
+  Symbol Pre;
+  unsigned Size;
+  struct Item** List;
+};
 
 static Symbol HashTab[HASH_MAX];
 static Symbol FirstSym = 0;
 static Symbol LastB;
 struct State* SList = 0;
+
+static Symbol SymBuf[MAX_SYM];
+static Symbol* SymP;
+
+static struct Items* STab;
+static unsigned Ss;
+
+static struct Items* XTab;
+static unsigned XMax;
+static unsigned Xs;
 
 Symbol* FirstB = &FirstSym;
 
@@ -38,9 +62,6 @@ static Symbol sym_lookup(char *S, unsigned char Literal) {
 void LookUp(Symbol* sym, char *S, unsigned char Literal) {
   *sym = sym_lookup(S, Literal);
 }
-
-#define MAX_SYM 0x100
-Symbol SymBuf[MAX_SYM], *SymP;
 
 static void InsertR(Symbol S) {
   Rule R; unsigned int I, J, Diff; Symbol *A, *B;
@@ -118,11 +139,6 @@ void Check(int* errors) {
   if (*errors > 0) printf("Aborted.\n"), exit(1);
 }
 
-struct Item { Symbol LHS, *RHS, *Pos; };
-struct Items { Symbol Pre; unsigned int Size; struct Item* *List; };
-
-struct Items* STab; unsigned int Ss;
-
 struct Item* CopyI(struct Item* A) {
   struct Item* B = Allocate(sizeof *B);
   *B = *A;
@@ -156,8 +172,6 @@ int AddState(unsigned int Size, struct Item* *List) {
   STab[Ss].Pre = 0, STab[Ss].Size = Size, STab[Ss].List = List;
   return Ss++;
 }
-
-struct Items* XTab; unsigned XMax, Xs;
 
 struct Items* GetItem(Symbol Pre) {
   unsigned X;

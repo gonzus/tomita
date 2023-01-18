@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdio.h>
-
 #define MAX_CHAR 0x400
 
 /* THE SCANNER */
@@ -13,6 +11,7 @@ extern char* ChArr;
 extern char* ChP;
 
 int OPEN(const char* path);
+
 int CLOSE(void);
 
 int GET(void);
