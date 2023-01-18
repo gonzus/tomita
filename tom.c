@@ -105,7 +105,8 @@ typedef Symbol *Rule;
 struct Symbol {
   char *Name; byte Defined, Literal; unsigned Index;
   unsigned Rules; Rule *RList;
-  Symbol Next, Tail;
+  struct Symbol *Next;
+  struct Symbol *Tail;
 };
 
 void *Allocate(unsigned Bytes) {
@@ -250,20 +251,16 @@ int CompI(Item A, Item B) {
   return *AP == 0? (*BP == 0? 0: -1): *BP == 0? +1: Diff;
 }
 
-typedef struct Reduce *Reduce;
-typedef struct Shift *Shift;
-typedef struct State *State;
-
 struct Reduce { Symbol LHS, *RHS; };
 struct Shift { Symbol X; int Q; };
 struct State {
   byte Final; unsigned Es, Rs, Ss;
   Symbol *EList; struct Reduce *RList; struct Shift *SList;
 };
-State SList;
+struct State* SList;
 
-State Next(State Q, Symbol Sym) {
-  unsigned int S; Shift Sh;
+struct State* Next(struct State* Q, Symbol Sym) {
+  unsigned int S; struct Shift* Sh;
   for (S = 0; S < Q->Ss; S++) {
     Sh = &Q->SList[S];
     if (Sh->X == Sym) return &SList[Sh->Q];
@@ -320,7 +317,7 @@ void AddItem(Items Q, Item It) {
   Q->List[I] = CopyI(It);
 }
 
-void MakeState(State S, byte Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss) {
+void MakeState(struct State* S, byte Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss) {
   S->Final = Final;
   S->Es = new_Es, S->EList = new_Es == 0? 0: Allocate(new_Es * sizeof(Symbol));
   S->Rs = new_Rs, S->RList = new_Rs == 0? 0: Allocate(new_Rs * sizeof(struct Reduce));
@@ -366,12 +363,12 @@ void Generate(Symbol Start) {
       if (*It->Pos != 0 || It->LHS == 0) continue;
       if (*It->RHS == 0) SList[S].EList[E++] = It->LHS;
       else {
-          Reduce Rd = &SList[S].RList[R++];
+          struct Reduce* Rd = &SList[S].RList[R++];
           Rd->LHS = It->LHS, Rd->RHS = It->RHS;
         }
     }
     for (X = 0; X < Xs; X++) {
-      Shift Sh = &SList[S].SList[X];
+      struct Shift* Sh = &SList[S].SList[X];
       Sh->X = XTab[X].Pre, Sh->Q = AddState(XTab[X].Size, XTab[X].List);
     }
   }
@@ -379,7 +376,7 @@ void Generate(Symbol Start) {
 }
 
 void SHOW_STATES(void) {
-  unsigned S; State St; Rule R; unsigned int I;
+  unsigned S; struct State* St; Rule R; unsigned int I;
   for (S = 0; S < Ss; S++) {
     St = &SList[S];
     printf("%d:\n", S);
@@ -491,7 +488,7 @@ unsigned AddSub(Symbol L, Subnode P) {
 typedef struct ZNode *ZNode;
 typedef struct Vertex *Vertex;
 struct ZNode { unsigned Val; unsigned Size, *List; };
-struct Vertex { State Val; unsigned Start; unsigned Size; ZNode *List; };
+struct Vertex { struct State* Val; unsigned Start; unsigned Size; ZNode *List; };
 Vertex VertTab; unsigned VertE, VertP;
 
 void SHOW_W(unsigned W) {
@@ -533,7 +530,7 @@ void AddERed(unsigned W, Symbol LHS) {
   EE++;
 }
 
-unsigned AddQ(State S) {
+unsigned AddQ(struct State* S) {
   unsigned V; Vertex W; unsigned int E;
   for (V = VertP; V < VertE; V++) {
     W = &VertTab[V];
@@ -548,7 +545,7 @@ unsigned AddQ(State S) {
 }
 
 void AddN(unsigned N, unsigned W) {
-  Node Nd = &NodeTab[N]; State S = Next(VertTab[W].Val, Nd->Sym);
+  Node Nd = &NodeTab[N]; struct State* S = Next(VertTab[W].Val, Nd->Sym);
   Vertex W1; unsigned Z; ZNode Z1; unsigned int I;
   if (S == 0) return;
   W1 = &VertTab[AddQ(S)];
@@ -557,7 +554,7 @@ void AddN(unsigned N, unsigned W) {
     if (Z1->Val == N) break;
   }
   if (Z >= W1->Size) {
-    Reduce Rd; unsigned int R;
+    struct Reduce* Rd; unsigned int R;
     if ((W1->Size&3) == 0)
       W1->List = Reallocate(W1->List, (W1->Size + 4) * sizeof(ZNode));
     Z = W1->Size++;
