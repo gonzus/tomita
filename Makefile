@@ -9,7 +9,7 @@ all:	tom
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-tom:	tom.o lex.o sym.o mem.o util.o
+tom:	main.o lex.o sym.o mem.o util.o
 	$(CC) -o $@ $^
 
 clean:
