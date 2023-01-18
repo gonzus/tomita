@@ -1,5 +1,9 @@
 ## WHAT
 
+This is a repo containing public domain code which was originally downloaded
+from
+[here](http://www.cs.cmu.edu/afs/cs/project/ai-repository/ai/areas/nlp/parsing/tom/).
+
 This directory contains C source for the Tomita Natural Language parsing
 algorithm.  This project has a long history starting in 10/88 based on a study
 of the Tomita algorithm done in 7/87 and reviewed in 9/88.  The source code,
