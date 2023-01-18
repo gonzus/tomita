@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "util.h"
 #include "mem.h"
 #include "lex.h"
 #include "tomita.h"
@@ -63,9 +64,9 @@ struct Path {
   struct Subnode* P;
 };
 
-unsigned Position;
-struct Node* NodeTab;
-struct Vertex* VertTab;
+unsigned Position = 0;
+struct Node* NodeTab = 0;
+struct Vertex* VertTab = 0;
 
 static unsigned NodeE;
 static unsigned NodeP;
@@ -133,10 +134,11 @@ static int EqualS(struct Subnode* A, struct Subnode* B) {
 }
 
 static void FreeSub(struct Subnode* A) {
-  struct Subnode* Next;
-  for (; A != 0; A = Next) {
-    Next = A->Next; free(A);
-    if (Next != 0 && --Next->Links > 0) break;
+  while (A != 0) {
+    if (--A->Links > 0) break;
+    struct Subnode* Next = A->Next;
+    FREE(A);
+    A = Next;
   }
 }
 
@@ -149,23 +151,30 @@ static unsigned AddSub(Symbol L, struct Subnode* P) {
   }
   if (N >= NodeE) {
     if ((NodeE&7) == 0)
-      NodeTab = Reallocate(NodeTab, (NodeE + 8) * sizeof *NodeTab);
-    N = NodeE++, Nd = &NodeTab[N];
+      NodeTab = Reallocate(NodeTab, (NodeE + 8) * sizeof(struct Node));
+    N = NodeE++;
+    Nd = &NodeTab[N];
     Nd->Sym = L, Nd->Size = Size;
-    Nd->Start =
-      L->Literal? Position - 1:
-      (P == 0)?   Position:
-      NodeTab[P->Cur].Start;
-    Nd->Subs = 0, Nd->Sub = 0;
+    Nd->Start = L->Literal ? Position - 1
+              : (P == 0)   ? Position
+              : NodeTab[P->Cur].Start;
+    Nd->Subs = 0;
+    Nd->Sub = 0;
   }
   if (!L->Literal) {
     for (S = 0; S < Nd->Subs; S++)
       if (EqualS(Nd->Sub[S], P)) break;
     if (S >= Nd->Subs) {
-      if ((Nd->Subs&3) == 0)
+      if ((Nd->Subs&3) == 0) {
         Nd->Sub = Reallocate(Nd->Sub, (Nd->Subs + 4) * sizeof(struct Subnode*));
+      }
+      // we are adding a reference to this Subnode, increment its reference count
+      // fix by gonzo
+      ++P->Links;
       Nd->Sub[Nd->Subs++] = P;
-    } else FreeSub(P);
+    } else {
+      FreeSub(P);
+    }
   }
   return N;
 }
@@ -209,8 +218,9 @@ static unsigned AddQ(struct State* S) {
     W = &VertTab[V];
     if (W->Val == S) return V;
   }
-  if ((VertE&7) == 0)
-    VertTab = Reallocate(VertTab, (VertE + 8)*sizeof *VertTab);
+  if ((VertE&7) == 0) {
+    VertTab = Reallocate(VertTab, (VertE + 8)*sizeof(struct Vertex));
+  }
   W = &VertTab[VertE];
   W->Val = S, W->Start = Position, W->Size = 0, W->List = 0;
   for (E = 0; E < S->Es; E++) AddERed(VertE, S->EList[E]);
@@ -221,7 +231,15 @@ static void AddN(unsigned N, unsigned W) {
   struct Node* Nd = &NodeTab[N]; struct State* S = Next(VertTab[W].Val, &Nd->Sym);
   struct Vertex* W1; unsigned Z; struct ZNode* Z1; unsigned int I;
   if (S == 0) return;
+#if 0
+  // on my M1 laptop, this does not work...
   W1 = &VertTab[AddQ(S)];
+#else
+  // ... but this does -- compiler bug?
+  // fix by gonzo
+  unsigned pos = AddQ(S);
+  W1 = &VertTab[pos];
+#endif
   for (Z = 0; Z < W1->Size; Z++) {
     Z1 = W1->List[Z];
     if (Z1->Val == N) break;
@@ -276,7 +294,8 @@ static void Reduce1(struct ZNode* Z, Symbol L, Rule R) {
     N = AddSub(L, P);
     for (unsigned W = 0; W < Z->Size; W++) AddN(N, Z->List[W]);
   }
-  free(PathTab), PathP = PathE = 0;
+  FREE(PathTab);
+  PathP = PathE = 0;
 }
 
 struct Node* Parse(void) {
@@ -292,7 +311,7 @@ struct Node* Parse(void) {
     Word = GetC();
     if (Word == 0) break;
     printf(" %s", Word->Name);
-    P = Allocate(sizeof *P);
+    P = Allocate(sizeof(struct Subnode));
     P->Size = 1, P->Cur = AddSub(Word, 0), P->Next = 0, P->Links = 0;
     VP = VertP, VertP = VertE; NodeP = NodeE;
     if (Word->Rules == 0) { /* Treat the word as a new word. */
@@ -302,9 +321,11 @@ struct Node* Parse(void) {
         N = AddSub(S, P);
         for (W = VP; W < VertP; W++) AddN(N, W);
       }
-    } else for (C = 0; C < Word->Rules; C++) {
-      N = AddSub(*Word->RList[C], P);
-      for (W = VP; W < VertP; W++) AddN(N, W);
+    } else {
+      for (C = 0; C < Word->Rules; C++) {
+        N = AddSub(*Word->RList[C], P);
+        for (W = VP; W < VertP; W++) AddN(N, W);
+      }
     }
   }
   /* ACCEPT */
@@ -329,18 +350,26 @@ void FreeTables(void) {
   unsigned int N, S, W, Z; struct Vertex* V; struct ZNode* ZN; struct Node* Nd;
   for (N = 0; N < NodeE; N++) {
     Nd = &NodeTab[N];
-    for (S = 0; S < Nd->Subs; S++) FreeSub(Nd->Sub[S]);
-    free(Nd->Sub);
+    for (S = 0; S < Nd->Subs; S++) {
+      FreeSub(Nd->Sub[S]);
+    }
+    FREE(Nd->Sub);
   }
-  free(NodeTab), NodeTab = 0, NodeE = NodeP = 0;
+  FREE(NodeTab);
+  NodeE = NodeP = 0;
   for (W = 0; W < VertE; W++) {
     V = &VertTab[W];
     for (Z = 0; Z < V->Size; Z++) {
-      ZN = V->List[Z]; free(ZN->List); free(ZN);
+      ZN = V->List[Z];
+      FREE(ZN->List);
+      FREE(ZN);
     }
-    free(V->List);
+    FREE(V->List);
   }
-  free(VertTab), VertTab = 0, VertE = VertP = 0;
-  free(REDS), RE = RP = 0;
-  free(EREDS), EE = EP = 0;
+  FREE(VertTab);
+  VertE = VertP = 0;
+  FREE(REDS);
+  RE = RP = 0;
+  FREE(EREDS);
+  EE = EP = 0;
 }

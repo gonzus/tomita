@@ -164,7 +164,7 @@ int AddState(unsigned int Size, struct Item* *List) {
     if (IS->Size != Size) continue;
     for (I = 0; I < IS->Size; I++)
       if (CompI(IS->List[I], List[I]) != 0) break;
-    if (I >= IS->Size) { free(List); return S; }
+    if (I >= IS->Size) { FREE(List); return S; }
   }
   if ((Ss&7) == 0)
     STab = Reallocate(STab, (Ss + 8) * sizeof *STab),
@@ -255,7 +255,8 @@ void Generate(Symbol* Start) {
       Sh->X = XTab[X].Pre, Sh->Q = AddState(XTab[X].Size, XTab[X].List);
     }
   }
-  free(XTab), free(QBuf);
+  FREE(XTab);
+  FREE(QBuf);
 }
 
 void SHOW_STATES(void) {
