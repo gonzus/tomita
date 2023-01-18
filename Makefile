@@ -3,8 +3,10 @@ LD = cc
 
 AFLAGS += -std=c11
 AFLAGS += -g
-AFLAGS += -fsanitize=address
-# AFLAGS += -fsanitize=thread
+AFLAGS += -fsanitize=undefined
+AFLAGS += -fsanitize=address   # cannot be used with thread
+# AFLAGS += -fsanitize=thread  # cannot be used with address
+# AFLAGS += -fsanitize=memory  # not supported on M1
 
 CFLAGS += $(AFLAGS)
 CFLAGS += -c
