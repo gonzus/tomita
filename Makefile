@@ -7,10 +7,10 @@ CFLAGS += -g
 all:	tom
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $^
 
-tom:	tom.o
-	$(CC) -o $@ $<
+tom:	tom.o lex.o mem.o util.o
+	$(CC) -o $@ $^
 
 clean:
 	rm -f *.o

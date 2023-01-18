@@ -3,10 +3,9 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
-
-/* Some compilers (such as gcc on the SUN) require this:
-#define realloc(X, N) ((X) == 0? malloc(N): realloc((X), (N)))
- */
+#include "util.h"
+#include "mem.h"
+#include "lex.h"
 
 /* An implementation of the Tomita Parsing Algorithm, using LR(0) parsing.
    Suggested modifications:
@@ -28,75 +27,7 @@
           ID ":" ID+ ".".
  */
 
-/* THE SCANNER */
-typedef enum { EndT, StarT, ColonT, EqualT, BarT, IdenT, DotT } Lexical;
-
-char *LastW;
-
-#define MAX_CHAR 0x400
-static char ChArr[MAX_CHAR], *ChP = ChArr;
-
-static int LINE = 1, ERRORS = 0;
-#define MAX_ERRORS 25
-
-FILE *InF;
-
-static int GET(void) {
-  int Ch = fgetc(InF);
-  if (Ch == '\n') LINE++;
-  return Ch;
-}
-
-static void UNGET(int Ch) {
-  if (Ch == '\n') --LINE;
-  ungetc(Ch, InF);
-}
-
-static void ERROR(char *Format, ...) {
-  va_list AP;
-  fprintf(stderr, "[%d] ", LINE);
-  va_start(AP, Format); vfprintf(stderr, Format, AP); va_end(AP);
-  fputc('\n', stderr);
-  if (++ERRORS == MAX_ERRORS)
-    fprintf(stderr, "Reached the %d error limit.\n", MAX_ERRORS), exit(1);
-}
-
-Lexical LEX(void) {
-  int Ch;
-  do Ch = GET(); while (isspace(Ch));
-  switch (Ch) {
-    case EOF: return EndT;
-    case '|': return BarT;
-    case '*': return StarT;
-    case ':': return ColonT;
-    case '=': return EqualT;
-    case '.': return DotT;
-  }
-  if (isalpha(Ch) || Ch == '_') {
-    for (LastW = ChP; isalnum(Ch) || Ch == '_'; ChP++) {
-      if (ChP - ChArr == MAX_CHAR)
-        printf("Out of character space.\n"), exit(1);
-      *ChP = Ch, Ch = GET();
-    }
-    if (Ch != EOF) UNGET(Ch);
-    if (ChP - ChArr == MAX_CHAR) printf("Out of character space.\n"), exit(1);
-    *ChP++ = '\0';
-    return IdenT;
-  } else if (Ch == '"') {
-    Ch = GET();
-    for (LastW = ChP; Ch != '"' && Ch != EOF; ChP++) {
-      if (ChP - ChArr == MAX_CHAR)
-        printf("Out of character space.\n"), exit(1);
-      *ChP = Ch, Ch = GET();
-    }
-    if (Ch == EOF) printf("Missing closing \".\n"), exit(1);
-    if (ChP - ChArr == MAX_CHAR) printf("Out of character space.\n"), exit(1);
-    *ChP++ = '\0';
-    return IdenT;
-  } else {
-    ERROR("extra character %c", Ch); return EndT;
-  }
-}
+static int ERRORS = 0;
 
 /* DATA STRUCTURES */
 typedef unsigned char byte;
@@ -109,25 +40,8 @@ struct SymbolData {
   struct SymbolData *Tail;
 };
 
-void *Allocate(unsigned Bytes) {
-  void *X = malloc(Bytes);
-  if (X == 0) printf("Out of memory.\n"), exit(1);
-  return X;
-}
-
-void *Reallocate(void *X, unsigned Bytes) {
-  X = realloc(X, Bytes);
-  if (X == 0) printf("Out of memory.\n"), exit(1);
-  return X;
-}
-
 #define HASH_MAX 0x100
 static Symbol HashTab[HASH_MAX], FirstB = 0, LastB;
-
-char *CopyS(char *S) {
-  char *NewS = (char *)Allocate(strlen(S) + 1);
-  strcpy(NewS, S); return NewS;
-}
 
 byte Hash(char *S) {
   int H; char *T;
@@ -172,59 +86,59 @@ void InsertR(Symbol S) {
 }
 
 Symbol Grammar(void) {
-  Symbol Start = 0, LHS; Lexical L = LEX(); int SawStart = 0;
+  Symbol Start = 0, LHS; Lexical L = LEX(&ERRORS); int SawStart = 0;
 START:
   switch (L) {
     case EndT: return Start;
     case IdenT: goto EQUAL;
-    case DotT: L = LEX(); goto START;
+    case DotT: L = LEX(&ERRORS); goto START;
     case ColonT: case EqualT:
-      ERROR("Missing left-hand side of rule, or '.' from previous rule.");
+      ERROR(LINE, &ERRORS, "Missing left-hand side of rule, or '.' from previous rule.");
       goto FLUSH;
     case StarT:
-      L = LEX();
-      if (L != IdenT) ERROR("Missing symbol after '*'.");
+      L = LEX(&ERRORS);
+      if (L != IdenT) ERROR(LINE, &ERRORS, "Missing symbol after '*'.");
       else {
           Start = LookUp(LastW, 0);
-          if (SawStart++ > 0) ERROR("Start symbol redefined.");
-          L = LEX();
+          if (SawStart++ > 0) ERROR(LINE, &ERRORS, "Start symbol redefined.");
+          L = LEX(&ERRORS);
         }
       goto FLUSH;
-    default: case BarT: ERROR("Corrupt rule."); goto FLUSH;
+    default: case BarT: ERROR(LINE, &ERRORS, "Corrupt rule."); goto FLUSH;
   }
 FLUSH:
-  for (; L != DotT && L != EndT; L = LEX()) ;
+  for (; L != DotT && L != EndT; L = LEX(&ERRORS)) ;
   goto END;
 EQUAL:
   LHS = LookUp(LastW, 0); if (Start == 0) Start = LHS;
-  L = LEX(); LHS->Defined = 1;
+  L = LEX(&ERRORS); LHS->Defined = 1;
   if (L == DotT) {
     SymP = SymBuf; *SymP++ = LHS, *SymP++ = 0;
     InsertR(LookUp(LHS->Name, 1));
   } else if (L == ColonT) {
     SymP = SymBuf; *SymP++ = LHS, *SymP++ = 0;
-    for (L = LEX(); L == IdenT; L = LEX()) InsertR(LookUp(LastW, 1));
+    for (L = LEX(&ERRORS); L == IdenT; L = LEX(&ERRORS)) InsertR(LookUp(LastW, 1));
   } else if (L == EqualT) {
     do {
-      L = LEX();
-      for (SymP = SymBuf; L == IdenT && SymP < SymBuf + MAX_SYM; L = LEX())
+      L = LEX(&ERRORS);
+      for (SymP = SymBuf; L == IdenT && SymP < SymBuf + MAX_SYM; L = LEX(&ERRORS))
         *SymP++ = LookUp(LastW, 0);
       if (SymP >= SymBuf + MAX_SYM) printf("Large rule.\n"), exit(1);
       *SymP++ = 0; InsertR(LHS);
     } while (L == BarT);
   } else {
-    ERROR("Missing '=' or ':'."); goto FLUSH;
+    ERROR(LINE, &ERRORS, "Missing '=' or ':'."); goto FLUSH;
   }
 END:
-  if (L == EndT) { ERROR("Missing '.'"); return Start; }
-  if (L == DotT) L = LEX();
+  if (L == EndT) { ERROR(LINE, &ERRORS, "Missing '.'"); return Start; }
+  if (L == DotT) L = LEX(&ERRORS);
   goto START;
 }
 
 void Check(void) {
   Symbol S;
   for (S = FirstB; S != 0; S = S->Tail)
-    if (!S->Defined && !S->Literal) ERROR("%s undefined.\n", S->Name);
+    if (!S->Defined && !S->Literal) ERROR(LINE, &ERRORS, "%s undefined.\n", S->Name);
   if (ERRORS > 0) printf("Aborted.\n"), exit(1);
 }
 
@@ -693,14 +607,13 @@ int main(int argc, char **argv) {
       );
     exit(1);
   }
-  InF = fopen(argv[Arg], "r");
-  if (InF == 0) fprintf(stderr, "Cannot open %s.\n", argv[Arg]), exit(1);
+  if (!OPEN(argv[Arg]))
+    fprintf(stderr, "Cannot open %s.\n", argv[Arg]), exit(1);
   Start = Grammar();
-  fclose(InF);
+  CLOSE();
   Check();
   Generate(Start);
   if (DoC) SHOW_STATES();
-  InF = stdin;
   while (1) {
     SetTables();
     Nd = Parse();
