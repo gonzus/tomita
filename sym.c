@@ -14,15 +14,15 @@ struct State* SList = 0;
 
 Symbol* FirstB = &FirstSym;
 
-static byte Hash(char *S) {
+static unsigned char Hash(char *S) {
   int H; char *T;
   for (H = 0, T = S; *T != '\0'; T++) H = (H << 1) ^ *T;
   return H&0xff;
 }
 
-static Symbol sym_lookup(char *S, byte Literal) {
+static Symbol sym_lookup(char *S, unsigned char Literal) {
   static int LABEL = 0;
-  Symbol Sym; byte H;
+  Symbol Sym; unsigned char H;
   for (H = Hash(S), Sym = HashTab[H]; Sym != 0; Sym = Sym->Next)
     if (Sym->Literal == Literal && strcmp(Sym->Name, S) == 0) return Sym;
   Sym = (Symbol)Allocate(sizeof *Sym);
@@ -35,7 +35,7 @@ static Symbol sym_lookup(char *S, byte Literal) {
   return LastB = Sym;
 }
 
-void LookUp(Symbol* sym, char *S, byte Literal) {
+void LookUp(Symbol* sym, char *S, unsigned char Literal) {
   *sym = sym_lookup(S, Literal);
 }
 
@@ -202,7 +202,7 @@ void Generate(Symbol* Start) {
   XTab = 0, XMax = 0;
   QBuf = 0, QMax = 0;
   for (S = 0; S < Ss; S++) {
-    unsigned ERs, RRs, E, R; byte Final;
+    unsigned ERs, RRs, E, R; unsigned char Final;
     QS = &STab[S];
     if (QS->Size > QMax)
       QMax = QS->Size, QBuf = Reallocate(QBuf, QMax * sizeof(struct Item*));
@@ -271,7 +271,7 @@ struct State* Next(struct State* Q, Symbol* Sym) {
   return 0;
 }
 
-void MakeState(struct State* S, byte Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss) {
+void MakeState(struct State* S, unsigned char Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss) {
   S->Final = Final;
   S->Es = new_Es, S->EList = new_Es == 0? 0: Allocate(new_Es * sizeof(Symbol));
   S->Rs = new_Rs, S->RList = new_Rs == 0? 0: Allocate(new_Rs * sizeof(struct Reduce));
