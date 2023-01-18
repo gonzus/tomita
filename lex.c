@@ -8,8 +8,8 @@ static char ChBuf[MAX_CHAR];
 static FILE *InF = 0;
 
 int LINE = 1;
-char* LastW = 0;
-char* ChArr = ChBuf;
+const char* LastW = 0;
+const char* ChArr = ChBuf;
 char* ChP = ChBuf;
 
 int OPEN(const char* path) {

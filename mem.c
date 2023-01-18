@@ -15,7 +15,8 @@ void *Reallocate(void *X, unsigned Bytes) {
   return X;
 }
 
-char *CopyS(char *S) {
+const char *CopyS(const char *S) {
   char *NewS = (char *)Allocate(strlen(S) + 1);
-  strcpy(NewS, S); return NewS;
+  strcpy(NewS, S);
+  return NewS;
 }

@@ -5,7 +5,7 @@
 
 #define MAX_ERRORS 25
 
-void ERROR(int line, int* errors, char *Format, ...) {
+void ERROR(int line, int* errors, const char *Format, ...) {
   va_list AP;
   fprintf(stderr, "[%d] ", line);
   va_start(AP, Format);

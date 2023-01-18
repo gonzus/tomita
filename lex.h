@@ -6,8 +6,8 @@
 typedef enum { EndT, StarT, ColonT, EqualT, BarT, IdenT, DotT } Lexical;
 
 extern int LINE;
-extern char* LastW;
-extern char* ChArr;
+extern const char* LastW;
+extern const char* ChArr;
 extern char* ChP;
 
 int OPEN(const char* path);

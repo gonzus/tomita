@@ -5,7 +5,7 @@ typedef struct SymbolData **Rule;
 
 // TODO: can we hide this structure?
 struct SymbolData {
-  char *Name;
+  const char *Name;
   unsigned char Defined;
   unsigned char Literal;
   unsigned Index;
@@ -47,7 +47,7 @@ void Generate(Symbol* Start);
 
 void SHOW_STATES(void);
 
-void LookUp(Symbol* sym, char *S, unsigned char Literal);
+void LookUp(Symbol* sym, const char *S, unsigned char Literal);
 
 struct State* Next(struct State* Q, Symbol* Sym);
 

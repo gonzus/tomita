@@ -38,13 +38,13 @@ static unsigned Xs;
 
 Symbol* FirstB = &FirstSym;
 
-static unsigned char Hash(char *S) {
-  int H; char *T;
+static unsigned char Hash(const char *S) {
+  int H; const char *T;
   for (H = 0, T = S; *T != '\0'; T++) H = (H << 1) ^ *T;
   return H&0xff;
 }
 
-static Symbol sym_lookup(char *S, unsigned char Literal) {
+static Symbol sym_lookup(const char *S, unsigned char Literal) {
   static int LABEL = 0;
   Symbol Sym; unsigned char H;
   for (H = Hash(S), Sym = HashTab[H]; Sym != 0; Sym = Sym->Next)
@@ -59,7 +59,7 @@ static Symbol sym_lookup(char *S, unsigned char Literal) {
   return LastB = Sym;
 }
 
-void LookUp(Symbol* sym, char *S, unsigned char Literal) {
+void LookUp(Symbol* sym, const char *S, unsigned char Literal) {
   *sym = sym_lookup(S, Literal);
 }
 
