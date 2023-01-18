@@ -12,7 +12,7 @@ static Symbol LastB;
 
 struct State* SList = 0;
 
-byte Hash(char *S) {
+static byte Hash(char *S) {
   int H; char *T;
   for (H = 0, T = S; *T != '\0'; T++) H = (H << 1) ^ *T;
   return H&0xff;
@@ -36,7 +36,7 @@ Symbol LookUp(char *S, byte Literal) {
 #define MAX_SYM 0x100
 Symbol SymBuf[MAX_SYM], *SymP;
 
-void InsertR(Symbol S) {
+static void InsertR(Symbol S) {
   Rule R; unsigned int I, J, Diff; Symbol *A, *B;
   for (I = 0; I < S->Rules; I++) {
     for (Diff = 0, A = SymBuf, B = S->RList[I]; *A != 0 && *B != 0; A++, B++) {
