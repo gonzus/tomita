@@ -1,9 +1,13 @@
 CC = cc
 
+CFLAGS += -std=c11
+CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
+CFLAGS += -g
+
 all:	tom
 
 %.o: %.c
-	$(CC) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 tom:	tom.o
 	$(CC) -o $@ $<

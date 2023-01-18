@@ -153,7 +153,7 @@ Symbol LookUp(char *S, byte Literal) {
 Symbol SymBuf[MAX_SYM], *SymP;
 
 void InsertR(Symbol S) {
-   Rule R; int I, J, Diff; Symbol *A, *B;
+   Rule R; unsigned int I, J, Diff; Symbol *A, *B;
    for (I = 0; I < S->Rules; I++) {
       for (Diff = 0, A = SymBuf, B = S->RList[I]; *A != 0 && *B != 0; A++, B++) {
          Diff = (*A)->Index - (*B)->Index;
@@ -171,7 +171,7 @@ void InsertR(Symbol S) {
 }
 
 Symbol Grammar(void) {
-   Symbol Start = 0, LHS, Sym; Lexical L = LEX(); int SawStart = 0;
+   Symbol Start = 0, LHS; Lexical L = LEX(); int SawStart = 0;
 START:
    switch (L) {
       case EndT: return Start;
@@ -228,9 +228,9 @@ void Check(void) {
 }
 
 typedef struct Item { Symbol LHS, *RHS, *Pos; } *Item;
-typedef struct Items { Symbol Pre; int Size; Item *List; } *Items;
+typedef struct Items { Symbol Pre; unsigned int Size; Item *List; } *Items;
 
-Items STab; int Ss;
+Items STab; unsigned int Ss;
 
 Item CopyI(Item A) {
    Item B = Allocate(sizeof *B);
@@ -263,7 +263,7 @@ struct State {
 State SList;
 
 State Next(State Q, Symbol Sym) {
-   int S; Shift Sh;
+   unsigned int S; Shift Sh;
    for (S = 0; S < Q->Ss; S++) {
       Sh = &Q->SList[S];
       if (Sh->X == Sym) return &SList[Sh->Q];
@@ -271,8 +271,8 @@ State Next(State Q, Symbol Sym) {
    return 0;
 }
 
-int AddState(int Size, Item *List) {
-   int I, S; Items IS;
+int AddState(unsigned int Size, Item *List) {
+   unsigned int I, S; Items IS;
    for (S = 0; S < Ss; S++) {
       IS = &STab[S];
       if (IS->Size != Size) continue;
@@ -308,7 +308,7 @@ Item FormItem(Symbol LHS, Rule RHS) {
 }
 
 void AddItem(Items Q, Item It) {
-   int I, J, Diff;
+   unsigned int I, J, Diff;
    for (I = 0; I < Q->Size; I++) {
       Diff = CompI(Q->List[I], It);
       if (Diff == 0) return;
@@ -320,15 +320,15 @@ void AddItem(Items Q, Item It) {
    Q->List[I] = CopyI(It);
 }
 
-void MakeState(State S, byte Final, unsigned Es, unsigned Rs, unsigned Ss) {
+void MakeState(State S, byte Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss) {
    S->Final = Final;
-   S->Es = Es, S->EList = Es == 0? 0: Allocate(Es * sizeof *S->EList),
-   S->Rs = Rs, S->RList = Rs == 0? 0: Allocate(Rs * sizeof *S->RList),
-   S->Ss = Ss, S->SList = Ss == 0? 0: Allocate(Ss * sizeof *S->SList);
+   S->Es = new_Es, S->EList = new_Es == 0? 0: Allocate(new_Es * sizeof *S->EList),
+   S->Rs = new_Rs, S->RList = new_Rs == 0? 0: Allocate(new_Rs * sizeof *S->RList),
+   S->Ss = new_Ss, S->SList = new_Ss == 0? 0: Allocate(new_Ss * sizeof *S->SList);
 }
 
 void Generate(Symbol Start) {
-   Item It, *Its, *QBuf; int S, X, R, Q, Qs, QMax; Items QS;
+   Item It, *Its, *QBuf; unsigned int S, X, Q, Qs, QMax; Items QS;
    Rule StartR = Allocate(2 * sizeof *StartR);
    StartR[0] = Start, StartR[1] = 0;
    Its = Allocate(sizeof *Its), Its[0] = FormItem(0, StartR);
@@ -378,7 +378,7 @@ void Generate(Symbol Start) {
 }
 
 void SHOW_STATES(void) {
-   unsigned S; State St; Rule R; int I;
+   unsigned S; State St; Rule R; unsigned int I;
    for (S = 0; S < Ss; S++) {
       St = &SList[S];
       printf("%d:\n", S);
@@ -426,7 +426,7 @@ void SHOW_NODE(unsigned N) {
 }
 
 void SHOW_FOREST(void) {
-   int N, S; Node Nd; Subnode P;
+   unsigned int N, S; Node Nd; Subnode P;
    for (N = 0; N < NodeE; N++) {
       Nd = &NodeTab[N];
       if (Nd->Sym->Literal) continue;
@@ -495,11 +495,11 @@ Vertex VertTab; unsigned VertE, VertP;
 
 void SHOW_W(unsigned W) {
    Vertex V = &VertTab[W];
-   printf(" v_%d_%d", V->Start, V->Val - SList);
+   printf(" v_%d_%ld", V->Start, V->Val - SList);
 }
 
 void SHOW_STACK(void) {
-   int W, W1, Z; Vertex V; ZNode N;
+   unsigned int W, W1, Z; Vertex V; ZNode N;
    for (W = 0; W < VertE; W++) {
       V = &VertTab[W];
       SHOW_W(W);
@@ -533,7 +533,7 @@ void AddERed(unsigned W, Symbol LHS) {
 }
 
 unsigned AddQ(State S) {
-   unsigned V; Vertex W; int E;
+   unsigned V; Vertex W; unsigned int E;
    for (V = VertP; V < VertE; V++) {
       W = &VertTab[V];
       if (W->Val == S) return V;
@@ -548,7 +548,7 @@ unsigned AddQ(State S) {
 
 void AddN(unsigned N, unsigned W) {
    Node Nd = &NodeTab[N]; State S = Next(VertTab[W].Val, Nd->Sym);
-   Vertex W1; unsigned Z; ZNode Z1; int I;
+   Vertex W1; unsigned Z; ZNode Z1; unsigned int I;
    if (S == 0) return;
    W1 = &VertTab[AddQ(S)];
    for (Z = 0; Z < W1->Size; Z++) {
@@ -556,7 +556,7 @@ void AddN(unsigned N, unsigned W) {
       if (Z1->Val == N) break;
    }
    if (Z >= W1->Size) {
-      Reduce Rd; int R;
+      Reduce Rd; unsigned int R;
       if ((W1->Size&3) == 0)
          W1->List = Reallocate(W1->List, (W1->Size + 4) * sizeof *W1->List);
       Z = W1->Size++;
@@ -592,22 +592,22 @@ void AddLink(ZNode Z, Subnode P) {
 }
 
 void Reduce1(ZNode Z, Symbol L, Rule R) {
-   unsigned PE, W, X; Path PP; Subnode P; Vertex V;
+   unsigned PE, X; Path PP; Subnode P; Vertex V;
    PathTab = 0, PathE = PathP = 0;
    AddLink(Z, 0);
    for (R++; *R != 0; R++)
       for (PE = PathE; PathP < PE; PathP++) {
          PP = &PathTab[PathP], Z = PP->Z, P = PP->P;
-         for (W = 0; W < Z->Size; W++) {
+         for (unsigned W = 0; W < Z->Size; W++) {
             V = &VertTab[Z->List[W]];
             for (X = 0; X < V->Size; X++) AddLink(V->List[X], P);
          }
       }
    for (; PathP < PathE; PathP++) {
-      unsigned N, W; Vertex V; Node Nd;
-      PP = &PathTab[PathP], Z = PP->Z, P = PP->P; Nd = &NodeTab[Z->Val];
+      unsigned N;
+      PP = &PathTab[PathP], Z = PP->Z, P = PP->P;
       N = AddSub(L, P);
-      for (W = 0; W < Z->Size; W++) AddN(N, Z->List[W]);
+      for (unsigned W = 0; W < Z->Size; W++) AddN(N, Z->List[W]);
    }
    free(PathTab), PathP = PathE = 0;
 }
@@ -659,7 +659,7 @@ void SetTables(void) {
 }
 
 void FreeTables(void) {
-   int N, S, W, Z; Vertex V; ZNode ZN; Node Nd;
+   unsigned int N, S, W, Z; Vertex V; ZNode ZN; Node Nd;
    for (N = 0; N < NodeE; N++) {
       Nd = &NodeTab[N];
       for (S = 0; S < Nd->Subs; S++) FreeSub(Nd->Sub[S]);
@@ -678,7 +678,7 @@ void FreeTables(void) {
    free(EREDS), EE = EP = 0;
 }
 
-void main(int AC, char **AV) {
+int main(int AC, char **AV) {
    Symbol Start; Node Nd; int Arg; char *AP;
    int DoC = 0, DoS = 0, DoH = 0;
    for (Arg = 1; Arg < AC; Arg++) {
@@ -721,5 +721,5 @@ void main(int AC, char **AV) {
       }
       FreeTables();
    }
-   exit(0);
+   return 0;
 }
