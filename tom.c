@@ -100,13 +100,13 @@ Lexical LEX(void) {
 
 /* DATA STRUCTURES */
 typedef unsigned char byte;
-typedef struct Symbol *Symbol;
-typedef Symbol *Rule;
-struct Symbol {
+typedef struct SymbolData *Symbol;
+typedef struct SymbolData **Rule;
+struct SymbolData {
   char *Name; byte Defined, Literal; unsigned Index;
   unsigned Rules; Rule *RList;
-  struct Symbol *Next;
-  struct Symbol *Tail;
+  struct SymbolData *Next;
+  struct SymbolData *Tail;
 };
 
 void *Allocate(unsigned Bytes) {
@@ -228,18 +228,18 @@ void Check(void) {
   if (ERRORS > 0) printf("Aborted.\n"), exit(1);
 }
 
-typedef struct Item { Symbol LHS, *RHS, *Pos; } *Item;
-typedef struct Items { Symbol Pre; unsigned int Size; Item *List; } *Items;
+struct Item { Symbol LHS, *RHS, *Pos; };
+struct Items { Symbol Pre; unsigned int Size; struct Item* *List; };
 
-Items STab; unsigned int Ss;
+struct Items* STab; unsigned int Ss;
 
-Item CopyI(Item A) {
-  Item B = Allocate(sizeof *B);
+struct Item* CopyI(struct Item* A) {
+  struct Item* B = Allocate(sizeof *B);
   *B = *A;
   return B;
 }
 
-int CompI(Item A, Item B) {
+int CompI(struct Item* A, struct Item* B) {
   int Diff; Symbol *AP, *BP;
   Diff =
     A->LHS == 0? (B->LHS == 0? 0: -1):
@@ -268,8 +268,8 @@ struct State* Next(struct State* Q, Symbol Sym) {
   return 0;
 }
 
-int AddState(unsigned int Size, Item *List) {
-  unsigned int I, S; Items IS;
+int AddState(unsigned int Size, struct Item* *List) {
+  unsigned int I, S; struct Items* IS;
   for (S = 0; S < Ss; S++) {
     IS = &STab[S];
     if (IS->Size != Size) continue;
@@ -284,9 +284,9 @@ int AddState(unsigned int Size, Item *List) {
   return Ss++;
 }
 
-Items XTab; unsigned XMax, Xs;
+struct Items* XTab; unsigned XMax, Xs;
 
-Items GetItem(Symbol Pre) {
+struct Items* GetItem(Symbol Pre) {
   unsigned X;
   for (X = 0; X < Xs; X++)
     if (Pre == XTab[X].Pre) break;
@@ -298,13 +298,13 @@ Items GetItem(Symbol Pre) {
   return &XTab[X];
 }
 
-Item FormItem(Symbol LHS, Rule RHS) {
-  Item It = Allocate(sizeof *It);
+struct Item* FormItem(Symbol LHS, Rule RHS) {
+  struct Item* It = Allocate(sizeof *It);
   It->LHS = LHS, It->Pos = It->RHS = RHS;
   return It;
 }
 
-void AddItem(Items Q, Item It) {
+void AddItem(struct Items* Q, struct Item* It) {
   unsigned int I, J, Diff;
   for (I = 0; I < Q->Size; I++) {
     Diff = CompI(Q->List[I], It);
@@ -312,7 +312,7 @@ void AddItem(Items Q, Item It) {
     if (Diff > 0) break;
   }
   if ((Q->Size&3) == 0)
-    Q->List = Reallocate(Q->List, (Q->Size + 4) * sizeof(Item));
+    Q->List = Reallocate(Q->List, (Q->Size + 4) * sizeof(struct Item*));
   for (J = Q->Size++; J > I; J--) Q->List[J] = Q->List[J - 1];
   Q->List[I] = CopyI(It);
 }
@@ -325,10 +325,13 @@ void MakeState(struct State* S, byte Final, unsigned new_Es, unsigned new_Rs, un
 }
 
 void Generate(Symbol Start) {
-  Item It, *Its, *QBuf; unsigned int S, X, Q, Qs, QMax; Items QS;
+  struct Item* It;
+  struct Item* *Its;
+  struct Item* *QBuf;
+  unsigned int S, X, Q, Qs, QMax; struct Items* QS;
   Rule StartR = Allocate(2 * sizeof(Symbol));
   StartR[0] = Start, StartR[1] = 0;
-  Its = Allocate(sizeof(Item)), Its[0] = FormItem(0, StartR);
+  Its = Allocate(sizeof(struct Item*)), Its[0] = FormItem(0, StartR);
   SList = 0, STab = 0, Ss = 0; AddState(1, Its);
   XTab = 0, XMax = 0;
   QBuf = 0, QMax = 0;
@@ -336,7 +339,7 @@ void Generate(Symbol Start) {
     unsigned ERs, RRs, E, R; byte Final;
     QS = &STab[S];
     if (QS->Size > QMax)
-      QMax = QS->Size, QBuf = Reallocate(QBuf, QMax * sizeof(Item));
+      QMax = QS->Size, QBuf = Reallocate(QBuf, QMax * sizeof(struct Item*));
     for (Qs = 0; Qs < QS->Size; Qs++)
       QBuf[Qs] = QS->List[Qs];
     for (ERs = RRs = 0, Final = 0, Xs = 0, Q = 0; Q < Qs; Q++) {
@@ -345,11 +348,11 @@ void Generate(Symbol Start) {
         if (It->LHS == 0) Final++;
         else if (*It->RHS == 0) ERs++; else RRs++;
       } else {
-        Symbol Pre = *It->Pos++; Items IS = GetItem(Pre);
+        Symbol Pre = *It->Pos++; struct Items* IS = GetItem(Pre);
         if (IS->Size == 0) {
           if (Qs + Pre->Rules > QMax)
             QMax = Qs + Pre->Rules,
-              QBuf = Reallocate(QBuf, QMax * sizeof(Item));
+              QBuf = Reallocate(QBuf, QMax * sizeof(struct Item*));
           for (R = 0; R < Pre->Rules; R++, Qs++)
             QBuf[Qs] = FormItem(Pre, Pre->RList[R]);
         }
@@ -411,20 +414,18 @@ Symbol GetC(void) {
   return Sym = LookUp(LastW, 1);
 }
 
-typedef struct Node *Node;
-typedef struct Subnode *Subnode;
-struct Node { Symbol Sym; unsigned Start, Size, Subs; Subnode *Sub; };
-struct Subnode { unsigned Size, Cur, Links; Subnode Next; };
-Node NodeTab; unsigned NodeE, NodeP;
+struct Node { Symbol Sym; unsigned Start, Size, Subs; struct Subnode **Sub; };
+struct Subnode { unsigned Size, Cur, Links; struct Subnode* Next; };
+struct Node* NodeTab; unsigned NodeE, NodeP;
 
 void SHOW_NODE(unsigned N) {
-  Node Nd = &NodeTab[N];
+  struct Node* Nd = &NodeTab[N];
   if (Nd->Sym->Literal) printf(" \"%s\"", Nd->Sym->Name);
   else printf(" %s_%d_%d", Nd->Sym->Name, Nd->Start, Nd->Start + Nd->Size);
 }
 
 void SHOW_FOREST(void) {
-  unsigned int N, S; Node Nd; Subnode P;
+  unsigned int N, S; struct Node* Nd; struct Subnode* P;
   for (N = 0; N < NodeE; N++) {
     Nd = &NodeTab[N];
     if (Nd->Sym->Literal) continue;
@@ -441,22 +442,22 @@ void SHOW_FOREST(void) {
   }
 }
 
-int EqualS(Subnode A, Subnode B) {
+int EqualS(struct Subnode* A, struct Subnode* B) {
   for (; A != 0 && B != 0; A = A->Next, B = B->Next)
     if (A->Size != B->Size || A->Cur != B->Cur) return 0;
   return A == B;
 }
 
-void FreeSub(Subnode A) {
-  Subnode Next;
+void FreeSub(struct Subnode* A) {
+  struct Subnode* Next;
   for (; A != 0; A = Next) {
     Next = A->Next; free(A);
     if (Next != 0 && --Next->Links > 0) break;
   }
 }
 
-unsigned AddSub(Symbol L, Subnode P) {
-  unsigned N, S, Size; Node Nd;
+unsigned AddSub(Symbol L, struct Subnode* P) {
+  unsigned N, S, Size; struct Node* Nd;
   Size = L->Literal? 1: (P == 0)? 0: P->Size;
   for (N = NodeP; N < NodeE; N++) {
     Nd = &NodeTab[N];
@@ -478,26 +479,24 @@ unsigned AddSub(Symbol L, Subnode P) {
       if (EqualS(Nd->Sub[S], P)) break;
     if (S >= Nd->Subs) {
       if ((Nd->Subs&3) == 0)
-        Nd->Sub = Reallocate(Nd->Sub, (Nd->Subs + 4) * sizeof(Subnode));
+        Nd->Sub = Reallocate(Nd->Sub, (Nd->Subs + 4) * sizeof(struct Subnode*));
       Nd->Sub[Nd->Subs++] = P;
     } else FreeSub(P);
   }
   return N;
 }
 
-typedef struct ZNode *ZNode;
-typedef struct Vertex *Vertex;
 struct ZNode { unsigned Val; unsigned Size, *List; };
-struct Vertex { struct State* Val; unsigned Start; unsigned Size; ZNode *List; };
-Vertex VertTab; unsigned VertE, VertP;
+struct Vertex { struct State* Val; unsigned Start; unsigned Size; struct ZNode* *List; };
+struct Vertex* VertTab; unsigned VertE, VertP;
 
 void SHOW_W(unsigned W) {
-  Vertex V = &VertTab[W];
+  struct Vertex* V = &VertTab[W];
   printf(" v_%d_%ld", V->Start, V->Val - SList);
 }
 
 void SHOW_STACK(void) {
-  unsigned int W, W1, Z; Vertex V; ZNode N;
+  unsigned int W, W1, Z; struct Vertex* V; struct ZNode* N;
   for (W = 0; W < VertE; W++) {
     V = &VertTab[W];
     SHOW_W(W);
@@ -512,18 +511,16 @@ void SHOW_STACK(void) {
   }
 }
 
-typedef struct RRed *RRed;
-struct RRed { ZNode Z; Symbol LHS; Rule RHS; };
-RRed REDS; unsigned RP, RE;
-void AddRed(ZNode Z, Symbol LHS, Rule RHS) {
+struct RRed { struct ZNode* Z; Symbol LHS; Rule RHS; };
+struct RRed* REDS; unsigned RP, RE;
+void AddRed(struct ZNode* Z, Symbol LHS, Rule RHS) {
   if ((RE&7) == 0) REDS = Reallocate(REDS, (RE + 8)*sizeof *REDS);
   REDS[RE].Z = Z, REDS[RE].LHS = LHS, REDS[RE].RHS = RHS;
   RE++;
 }
 
-typedef struct ERed *ERed;
 struct ERed { unsigned W; Symbol LHS; };
-ERed EREDS; unsigned EP, EE;
+struct ERed* EREDS; unsigned EP, EE;
 void AddERed(unsigned W, Symbol LHS) {
   if ((EE&7) == 0) EREDS = Reallocate(EREDS, (EE + 8)*sizeof *EREDS);
   EREDS[EE].W = W, EREDS[EE].LHS = LHS;
@@ -531,7 +528,7 @@ void AddERed(unsigned W, Symbol LHS) {
 }
 
 unsigned AddQ(struct State* S) {
-  unsigned V; Vertex W; unsigned int E;
+  unsigned V; struct Vertex* W; unsigned int E;
   for (V = VertP; V < VertE; V++) {
     W = &VertTab[V];
     if (W->Val == S) return V;
@@ -545,8 +542,8 @@ unsigned AddQ(struct State* S) {
 }
 
 void AddN(unsigned N, unsigned W) {
-  Node Nd = &NodeTab[N]; struct State* S = Next(VertTab[W].Val, Nd->Sym);
-  Vertex W1; unsigned Z; ZNode Z1; unsigned int I;
+  struct Node* Nd = &NodeTab[N]; struct State* S = Next(VertTab[W].Val, Nd->Sym);
+  struct Vertex* W1; unsigned Z; struct ZNode* Z1; unsigned int I;
   if (S == 0) return;
   W1 = &VertTab[AddQ(S)];
   for (Z = 0; Z < W1->Size; Z++) {
@@ -556,7 +553,7 @@ void AddN(unsigned N, unsigned W) {
   if (Z >= W1->Size) {
     struct Reduce* Rd; unsigned int R;
     if ((W1->Size&3) == 0)
-      W1->List = Reallocate(W1->List, (W1->Size + 4) * sizeof(ZNode));
+      W1->List = Reallocate(W1->List, (W1->Size + 4) * sizeof(struct ZNode*));
     Z = W1->Size++;
     W1->List[Z] = Z1 = Allocate(sizeof *Z1);
     Z1->Val = N, Z1->Size = 0, Z1->List = 0;
@@ -573,13 +570,12 @@ void AddN(unsigned N, unsigned W) {
   }
 }
 
-typedef struct Path *Path;
-struct Path { ZNode Z; Subnode P; };
-Path PathTab; unsigned PathE, PathP;
+struct Path { struct ZNode* Z; struct Subnode* P; };
+struct Path* PathTab; unsigned PathE, PathP;
 
-void AddLink(ZNode Z, Subnode P) {
-  Path PP; unsigned N = Z->Val; Node Nd = &NodeTab[N];
-  Subnode NewP = Allocate(sizeof *NewP);
+void AddLink(struct ZNode* Z, struct Subnode* P) {
+  struct Path* PP; unsigned N = Z->Val; struct Node* Nd = &NodeTab[N];
+  struct Subnode* NewP = Allocate(sizeof *NewP);
   NewP->Size = Nd->Size; if (P != 0) NewP->Size += P->Size, P->Links++;
   NewP->Cur = N, NewP->Next = P, NewP->Links = 0;
   P = NewP;
@@ -589,8 +585,8 @@ void AddLink(ZNode Z, Subnode P) {
   PP->Z = Z, PP->P = P;
 }
 
-void Reduce1(ZNode Z, Symbol L, Rule R) {
-  unsigned PE, X; Path PP; Subnode P; Vertex V;
+void Reduce1(struct ZNode* Z, Symbol L, Rule R) {
+  unsigned PE, X; struct Path* PP; struct Subnode* P; struct Vertex* V;
   PathTab = 0, PathE = PathP = 0;
   AddLink(Z, 0);
   for (R++; *R != 0; R++)
@@ -610,8 +606,8 @@ void Reduce1(ZNode Z, Symbol L, Rule R) {
   free(PathTab), PathP = PathE = 0;
 }
 
-Node Parse(void) {
-  Symbol Word; unsigned C, VP, N, W; Subnode P;
+struct Node* Parse(void) {
+  Symbol Word; unsigned C, VP, N, W; struct Subnode* P;
   AddQ(&SList[0]);
   while (1) {
     /* REDUCE */
@@ -641,7 +637,7 @@ Node Parse(void) {
   /* ACCEPT */
   putchar('\n');
   for (W = VertP; W < VertE; W++) {
-    Vertex V = &VertTab[W];
+    struct Vertex* V = &VertTab[W];
     if (V->Val->Final) return &NodeTab[V->List[0]->Val];
   }
   return 0;
@@ -657,7 +653,7 @@ void SetTables(void) {
 }
 
 void FreeTables(void) {
-  unsigned int N, S, W, Z; Vertex V; ZNode ZN; Node Nd;
+  unsigned int N, S, W, Z; struct Vertex* V; struct ZNode* ZN; struct Node* Nd;
   for (N = 0; N < NodeE; N++) {
     Nd = &NodeTab[N];
     for (S = 0; S < Nd->Subs; S++) FreeSub(Nd->Sub[S]);
@@ -677,7 +673,7 @@ void FreeTables(void) {
 }
 
 int main(int argc, char **argv) {
-  Symbol Start; Node Nd; int Arg; char *AP;
+  Symbol Start; struct Node* Nd; int Arg; char *AP;
   int DoC = 0, DoS = 0, DoH = 0;
   for (Arg = 1; Arg < argc; Arg++) {
     AP = argv[Arg];
