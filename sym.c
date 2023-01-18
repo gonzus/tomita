@@ -6,11 +6,13 @@
 #include "sym.h"
 
 #define HASH_MAX 0x100
-static Symbol HashTab[HASH_MAX];
-Symbol FirstB = 0;
-static Symbol LastB;
 
+static Symbol HashTab[HASH_MAX];
+static Symbol FirstSym = 0;
+static Symbol LastB;
 struct State* SList = 0;
+
+Symbol* FirstB = &FirstSym;
 
 static byte Hash(char *S) {
   int H; char *T;
@@ -18,7 +20,7 @@ static byte Hash(char *S) {
   return H&0xff;
 }
 
-Symbol LookUp(char *S, byte Literal) {
+static Symbol sym_lookup(char *S, byte Literal) {
   static int LABEL = 0;
   Symbol Sym; byte H;
   for (H = Hash(S), Sym = HashTab[H]; Sym != 0; Sym = Sym->Next)
@@ -29,8 +31,12 @@ Symbol LookUp(char *S, byte Literal) {
   Sym->Rules = 0, Sym->RList = 0;
   Sym->Next = HashTab[H], HashTab[H] = Sym;
   Sym->Tail = 0;
-  if (FirstB == 0) FirstB = Sym; else LastB->Tail = Sym;
+  if (FirstSym == 0) FirstSym = Sym; else LastB->Tail = Sym;
   return LastB = Sym;
+}
+
+void LookUp(Symbol* sym, char *S, byte Literal) {
+  *sym = sym_lookup(S, Literal);
 }
 
 #define MAX_SYM 0x100
@@ -54,11 +60,12 @@ static void InsertR(Symbol S) {
   for (I = 0; I < (SymP - SymBuf); I++) R[I] = SymBuf[I];
 }
 
-Symbol Grammar(int* errors) {
-  Symbol Start = 0, LHS; Lexical L = LEX(errors); int SawStart = 0;
+void Grammar(Symbol* Start, int* errors) {
+  Symbol LHS; Lexical L = LEX(errors); int SawStart = 0;
+  *Start = 0;
 START:
   switch (L) {
-    case EndT: return Start;
+    case EndT: return;
     case IdenT: goto EQUAL;
     case DotT: L = LEX(errors); goto START;
     case ColonT: case EqualT:
@@ -68,7 +75,7 @@ START:
       L = LEX(errors);
       if (L != IdenT) ERROR(LINE, errors, "Missing symbol after '*'.");
       else {
-          Start = LookUp(LastW, 0);
+          *Start = sym_lookup(LastW, 0);
           if (SawStart++ > 0) ERROR(LINE, errors, "Start symbol redefined.");
           L = LEX(errors);
         }
@@ -79,19 +86,19 @@ FLUSH:
   for (; L != DotT && L != EndT; L = LEX(errors)) ;
   goto END;
 EQUAL:
-  LHS = LookUp(LastW, 0); if (Start == 0) Start = LHS;
+  LHS = sym_lookup(LastW, 0); if (*Start == 0) *Start = LHS;
   L = LEX(errors); LHS->Defined = 1;
   if (L == DotT) {
     SymP = SymBuf; *SymP++ = LHS, *SymP++ = 0;
-    InsertR(LookUp(LHS->Name, 1));
+    InsertR(sym_lookup(LHS->Name, 1));
   } else if (L == ColonT) {
     SymP = SymBuf; *SymP++ = LHS, *SymP++ = 0;
-    for (L = LEX(errors); L == IdenT; L = LEX(errors)) InsertR(LookUp(LastW, 1));
+    for (L = LEX(errors); L == IdenT; L = LEX(errors)) InsertR(sym_lookup(LastW, 1));
   } else if (L == EqualT) {
     do {
       L = LEX(errors);
       for (SymP = SymBuf; L == IdenT && SymP < SymBuf + MAX_SYM; L = LEX(errors))
-        *SymP++ = LookUp(LastW, 0);
+        *SymP++ = sym_lookup(LastW, 0);
       if (SymP >= SymBuf + MAX_SYM) printf("Large rule.\n"), exit(1);
       *SymP++ = 0; InsertR(LHS);
     } while (L == BarT);
@@ -99,14 +106,14 @@ EQUAL:
     ERROR(LINE, errors, "Missing '=' or ':'."); goto FLUSH;
   }
 END:
-  if (L == EndT) { ERROR(LINE, errors, "Missing '.'"); return Start; }
+  if (L == EndT) { ERROR(LINE, errors, "Missing '.'"); return; }
   if (L == DotT) L = LEX(errors);
   goto START;
 }
 
 void Check(int* errors) {
   Symbol S;
-  for (S = FirstB; S != 0; S = S->Tail)
+  for (S = FirstSym; S != 0; S = S->Tail)
     if (!S->Defined && !S->Literal) ERROR(LINE, errors, "%s undefined.\n", S->Name);
   if (*errors > 0) printf("Aborted.\n"), exit(1);
 }
@@ -183,13 +190,13 @@ void AddItem(struct Items* Q, struct Item* It) {
   Q->List[I] = CopyI(It);
 }
 
-void Generate(Symbol Start) {
+void Generate(Symbol* Start) {
   struct Item* It;
   struct Item* *Its;
   struct Item* *QBuf;
   unsigned int S, X, Q, Qs, QMax; struct Items* QS;
   Rule StartR = Allocate(2 * sizeof(Symbol));
-  StartR[0] = Start, StartR[1] = 0;
+  StartR[0] = *Start, StartR[1] = 0;
   Its = Allocate(sizeof(struct Item*)), Its[0] = FormItem(0, StartR);
   SList = 0, STab = 0, Ss = 0; AddState(1, Its);
   XTab = 0, XMax = 0;
@@ -255,11 +262,11 @@ void SHOW_STATES(void) {
   }
 }
 
-struct State* Next(struct State* Q, Symbol Sym) {
+struct State* Next(struct State* Q, Symbol* Sym) {
   unsigned int S; struct Shift* Sh;
   for (S = 0; S < Q->Ss; S++) {
     Sh = &Q->SList[S];
-    if (Sh->X == Sym) return &SList[Sh->Q];
+    if (Sh->X == *Sym) return &SList[Sh->Q];
   }
   return 0;
 }

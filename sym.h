@@ -25,6 +25,7 @@ struct Shift {
   int Q;
 };
 
+// TODO: find a better place for State (and Shift, Reduce)
 struct State {
   byte Final;
   unsigned Es;
@@ -35,19 +36,19 @@ struct State {
   struct Shift* SList;
 };
 
-extern Symbol FirstB;
+extern Symbol* FirstB;
 extern struct State* SList;
 
-Symbol Grammar(int* errors);
+void Grammar(Symbol* start, int* errors);
 
 void Check(int* errors);
 
-void Generate(Symbol Start);
+void Generate(Symbol* Start);
 
 void SHOW_STATES(void);
 
-Symbol LookUp(char *S, byte Literal);
+void LookUp(Symbol* sym, char *S, byte Literal);
 
-struct State* Next(struct State* Q, Symbol Sym);
+struct State* Next(struct State* Q, Symbol* Sym);
 
 void MakeState(struct State* S, byte Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss);

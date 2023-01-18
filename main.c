@@ -5,7 +5,7 @@
 
 int main(int argc, char **argv) {
   int ERRORS = 0;
-  Symbol Start; struct Node* Nd; int Arg; char *AP;
+  struct Node* Nd; int Arg; char *AP;
   int DoC = 0, DoS = 0, DoH = 0;
   for (Arg = 1; Arg < argc; Arg++) {
     AP = argv[Arg];
@@ -30,10 +30,11 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Cannot open %s.\n", argv[Arg]);
     return 1;
   }
-  Start = Grammar(&ERRORS);
+  Symbol Start;
+  Grammar(&Start, &ERRORS);
   CLOSE();
   Check(&ERRORS);
-  Generate(Start);
+  Generate(&Start);
   if (DoC) SHOW_STATES();
   while (1) {
     SetTables();

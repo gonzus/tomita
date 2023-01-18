@@ -84,7 +84,7 @@ static unsigned PathE;
 static unsigned PathP;
 
 static Symbol GetC(void) {
-  int Ch; Symbol Sym;
+  int Ch;
   do Ch = GET(); while (Ch == ' ' || Ch == '\t');
   if (Ch == '\n' || Ch == EOF) return 0;
   for (LastW = ChP; Ch != EOF && !isspace(Ch); ChP++) {
@@ -96,7 +96,9 @@ static Symbol GetC(void) {
   if (ChP - ChArr == MAX_CHAR) printf("Out of character space.\n"), exit(1);
   *ChP++ = '\0';
   Position++;
-  return Sym = LookUp(LastW, 1);
+  Symbol Sym;
+  LookUp(&Sym, LastW, 1);
+  return Sym;
 }
 
 void SHOW_NODE(unsigned N) {
@@ -215,7 +217,7 @@ static unsigned AddQ(struct State* S) {
 }
 
 static void AddN(unsigned N, unsigned W) {
-  struct Node* Nd = &NodeTab[N]; struct State* S = Next(VertTab[W].Val, Nd->Sym);
+  struct Node* Nd = &NodeTab[N]; struct State* S = Next(VertTab[W].Val, &Nd->Sym);
   struct Vertex* W1; unsigned Z; struct ZNode* Z1; unsigned int I;
   if (S == 0) return;
   W1 = &VertTab[AddQ(S)];
@@ -294,7 +296,7 @@ struct Node* Parse(void) {
     VP = VertP, VertP = VertE; NodeP = NodeE;
     if (Word->Rules == 0) { /* Treat the word as a new word. */
       Symbol S;
-      for (S = FirstB; S != 0; S = S->Tail) {
+      for (S = *FirstB; S != 0; S = S->Tail) {
         if (S->Rules > 0) continue;
         N = AddSub(S, P);
         for (W = VP; W < VertP; W++) AddN(N, W);
