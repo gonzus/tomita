@@ -40,7 +40,6 @@ Symbol* FirstB = &FirstSym;
 
 static unsigned char Hash(const char* ptr, unsigned len) {
   int H = 0;
-  const char *T;
   for (unsigned pos = 0; pos < len; ++pos) H = (H << 1) ^ ptr[pos];
   return H&0xff;
 }

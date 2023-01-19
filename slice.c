@@ -34,7 +34,7 @@ Slice slice_trim(Slice s) {
 int slice_integer(Slice s, long int* val) {
     *val = 0;
     char fmt[100];
-    sprintf(fmt, "%%%uld%%n", s.len);
+    snprintf(fmt, 100, "%%%uld%%n", s.len);
     int bytes = 0;
     int items = sscanf(s.ptr, fmt, val, &bytes);
     if (items != 1 || (uint32_t) bytes != s.len) return 0;
@@ -44,7 +44,7 @@ int slice_integer(Slice s, long int* val) {
 int slice_real(Slice s, double* val) {
     *val = 0;
     char fmt[100];
-    sprintf(fmt, "%%%ulf%%n", s.len);
+    snprintf(fmt, 100, "%%%ulf%%n", s.len);
     int bytes = 0;
     int items = sscanf(s.ptr, fmt, val, &bytes);
     if (items != 1 || (uint32_t) bytes != s.len) return 0;

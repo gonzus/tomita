@@ -1,5 +1,5 @@
-CC = cc
-LD = cc
+CC = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
+LD = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
 
 AFLAGS += -std=c11
 AFLAGS += -g
@@ -16,10 +16,25 @@ LDFLAGS += $(AFLAGS)
 
 all:	tom
 
+C_SRC = \
+	grammar.c \
+	lex.c \
+	log.c \
+	main.c \
+	mem.c \
+	slice.c \
+	sym.c \
+	symbol.c \
+	symtab.c \
+	tomita.c \
+	util.c \
+
+C_OBJ = $(C_SRC:.c=.o)
+
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-tom:	main.o tomita.o lex.o sym.o mem.o util.o
+tom:	$(C_OBJ)
 	$(LD) $(LDFLAGS) -o $@ $^
 
 clean:

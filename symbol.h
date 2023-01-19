@@ -2,39 +2,20 @@
 
 #include "slice.h"
 
+// The rules of a symbol point to other symbols.
+// These pointers (and their containing array) are dynamically allocated,
+// but the symbols themselves just live in the symbol table.
 typedef struct Symbol {
-  Slice Name;
-  unsigned char Defined;
-  unsigned char Literal;
-  unsigned Index;
-  unsigned Rules;
-  struct Symbol*** RList; // WTF?
-  struct Symbol* Next;
-  struct Symbol* Tail;
+  Slice name;              // name for symbol
+  unsigned char literal;   // not sure...
+  unsigned char defined;   // not sure...
+  unsigned index;          // sequential number
+  unsigned rule_count;     // how many rules we have in rules
+  struct Symbol*** rules;  // triple pointer?!?
+  struct Symbol* next;     // for symbol table chaining
+  struct Symbol* tail;     // not sure...
 } Symbol;
-
-#if 0
-struct Reduce {
-  Symbol* LHS;
-  Symbol** RHS;
-};
-
-struct Shift {
-  Symbol* X;
-  int Q;
-};
-
-// TODO: find a better place for State (and Shift, Reduce)
-struct State {
-  unsigned char Final;
-  unsigned Es;
-  unsigned Rs;
-  unsigned Ss;
-  Symbol** EList;
-  struct Reduce* RList;
-  struct Shift* SList;
-};
-#endif
 
 Symbol* symbol_create(Slice name, unsigned literal);
 void symbol_destroy(Symbol* symbol);
+void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP);
