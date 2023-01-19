@@ -38,25 +38,34 @@ static unsigned Xs;
 
 Symbol* FirstB = &FirstSym;
 
-static unsigned char Hash(const char *S) {
-  int H; const char *T;
-  for (H = 0, T = S; *T != '\0'; T++) H = (H << 1) ^ *T;
+static unsigned char Hash(const char* ptr, unsigned len) {
+  int H = 0;
+  const char *T;
+  for (unsigned pos = 0; pos < len; ++pos) H = (H << 1) ^ ptr[pos];
   return H&0xff;
 }
 
-static Symbol sym_lookup(const char *S, unsigned char Literal) {
+static Symbol sym_lookup_slice(const char *ptr, unsigned len, unsigned char Literal) {
   static int LABEL = 0;
   Symbol Sym; unsigned char H;
-  for (H = Hash(S), Sym = HashTab[H]; Sym != 0; Sym = Sym->Next)
-    if (Sym->Literal == Literal && strcmp(Sym->Name, S) == 0) return Sym;
+  for (H = Hash(ptr, len), Sym = HashTab[H]; Sym != 0; Sym = Sym->Next)
+    if (Sym->Literal == Literal && Sym->Name[len] == '\0' && memcmp(Sym->Name, ptr, len) == 0) return Sym;
   Sym = (Symbol)Allocate(sizeof *Sym);
-  Sym->Name = CopyS(S), Sym->Literal = Literal;
+  Sym->Name = CopyB(ptr, len), Sym->Literal = Literal;
   Sym->Index = LABEL++, Sym->Defined = 0;
   Sym->Rules = 0, Sym->RList = 0;
   Sym->Next = HashTab[H], HashTab[H] = Sym;
   Sym->Tail = 0;
   if (FirstSym == 0) FirstSym = Sym; else LastB->Tail = Sym;
   return LastB = Sym;
+}
+
+static Symbol sym_lookup(const char *S, unsigned char Literal) {
+  return sym_lookup_slice(S, strlen(S), Literal);
+}
+
+void LookUpSlice(Symbol* sym, Slice S, unsigned char Literal) {
+  *sym = sym_lookup_slice(S.ptr, S.len, Literal);
 }
 
 void LookUp(Symbol* sym, const char *S, unsigned char Literal) {
@@ -81,7 +90,7 @@ static void InsertR(Symbol S) {
   for (I = 0; I < (SymP - SymBuf); I++) R[I] = SymBuf[I];
 }
 
-void Grammar(Symbol* Start, int* errors) {
+void CreateGrammar(Symbol* Start, int* errors) {
   Symbol LHS; Lexical L = LEX(errors); int SawStart = 0;
   *Start = 0;
 START:

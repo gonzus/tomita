@@ -24,8 +24,15 @@ void *Reallocate(void* P, unsigned Bytes) {
   return P;
 }
 
-const char *CopyS(const char *S) {
-  char *NewS = (char *)Allocate(strlen(S) + 1);
-  strcpy(NewS, S);
+char *CopyB(const char *ptr, unsigned len) {
+  char *NewS = (char *)Allocate(len);
+  memcpy(NewS, ptr, len);
+  return NewS;
+}
+
+char *CopyS(const char *S) {
+  unsigned len = strlen(S);
+  char *NewS = CopyB(S, len + 1);
+  NewS[len] = '\0';
   return NewS;
 }

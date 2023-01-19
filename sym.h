@@ -1,5 +1,7 @@
 #pragma once
 
+#include "slice.h"
+
 typedef struct SymbolData *Symbol;
 typedef struct SymbolData **Rule;
 
@@ -39,7 +41,7 @@ struct State {
 extern Symbol* FirstB;
 extern struct State* SList;
 
-void Grammar(Symbol* start, int* errors);
+void CreateGrammar(Symbol* start, int* errors);
 
 void Check(int* errors);
 
@@ -47,6 +49,7 @@ void Generate(Symbol* Start);
 
 void SHOW_STATES(void);
 
+void LookUpSlice(Symbol* sym, Slice S, unsigned char Literal);
 void LookUp(Symbol* sym, const char *S, unsigned char Literal);
 
 struct State* Next(struct State* Q, Symbol* Sym);

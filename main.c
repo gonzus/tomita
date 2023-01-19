@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     return 1;
   }
   Symbol Start;
-  Grammar(&Start, &ERRORS);
+  CreateGrammar(&Start, &ERRORS);
   CLOSE();
   Check(&ERRORS);
   Generate(&Start);
