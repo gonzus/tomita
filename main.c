@@ -5,6 +5,7 @@
 // #include "sym.h"
 // #include "tomita.h"
 #include "grammar.h"
+#include "parser.h"
 
 #define MAX_BUF (1024*1024)
 
@@ -32,14 +33,38 @@ int main(int argc, char **argv) {
   }
 
 #if 1
-  char buf[MAX_BUF];
-  unsigned len = slurp_file(argv[Arg], buf, MAX_BUF);
-  LOG_INFO("read %u bytes from [%s]", len, argv[Arg]);
-  Slice text = slice_from_memory(buf, len);
-  Grammar* grammar = grammar_create(text);
-  unsigned errors = grammar_check(grammar);
-  LOG_INFO("created grammar with %u errors", errors);
-  grammar_destroy(grammar);
+  Grammar* grammar = 0;
+  Parser* parser = 0;
+  do {
+    char buf[MAX_BUF];
+    unsigned len = slurp_file(argv[Arg], buf, MAX_BUF);
+    if (len <= 0) break;
+    LOG_INFO("read %u bytes from [%s]", len, argv[Arg]);
+    Slice text = slice_from_memory(buf, len);
+
+    grammar = grammar_create(text);
+    if (!grammar) break;
+    LOG_INFO("created grammar");
+
+    unsigned errors = grammar_check(grammar);
+    if (errors) {
+      LOG_INFO("grammar has %u errors", errors);
+      break;
+    }
+
+    parser = parser_create();
+    if (!parser) break;
+    LOG_INFO("created parser");
+
+    parser_build(parser, grammar);
+    LOG_INFO("built parser from grammar");
+    parser_show(parser);
+  } while (0);
+
+  if (parser)
+    parser_destroy(parser);
+  if (grammar)
+    grammar_destroy(grammar);
 #endif
 
 #if 0

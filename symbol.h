@@ -2,6 +2,8 @@
 
 #include "slice.h"
 
+typedef struct Symbol** Rule;
+
 // The rules of a symbol point to other symbols.
 // These pointers (and their containing array) are dynamically allocated,
 // but the symbols themselves just live in the symbol table.
@@ -11,7 +13,7 @@ typedef struct Symbol {
   unsigned char defined;   // not sure...
   unsigned index;          // sequential number
   unsigned rule_count;     // how many rules we have in rules
-  struct Symbol*** rules;  // triple pointer?!?
+  Rule* rules;             // triple pointer?!?
   struct Symbol* next;     // for symbol table chaining
   struct Symbol* tail;     // not sure...
 } Symbol;

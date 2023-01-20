@@ -44,12 +44,12 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {
     }
   }
   if ((symbol->rule_count & 7) == 0)
-    symbol->rules = Reallocate(symbol->rules, sizeof(Symbol**) * (symbol->rule_count + 8));
+    symbol->rules = Reallocate(symbol->rules, sizeof(Rule) * (symbol->rule_count + 8));
   for (unsigned j = symbol->rule_count++; j > k; j--) {
     symbol->rules[j] = symbol->rules[j - 1];
   }
 
-  Symbol** rule = symbol->rules[k] = Allocate(sizeof(Symbol*) * (SymP - SymBuf));
+  Rule rule = symbol->rules[k] = Allocate(sizeof(Symbol*) * (SymP - SymBuf));
   for (k = 0; k < (SymP - SymBuf); k++) {
     rule[k] = SymBuf[k];
     if (!rule[k]) continue;

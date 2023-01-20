@@ -22,6 +22,7 @@ C_SRC = \
 	log.c \
 	main.c \
 	mem.c \
+	parser.c \
 	slice.c \
 	sym.c \
 	symbol.c \

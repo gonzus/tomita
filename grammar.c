@@ -152,65 +152,6 @@ unsigned grammar_check(Grammar* grammar) {
   return errors;
 }
 
-#if 0
-// TODO
-// This is the next step -- generating a parser from the grammar.
-void grammar_generate(Symbol* Start) {
-  struct Item* It;
-  struct Item* *Its;
-  struct Item* *QBuf;
-  unsigned int S, X, Q, Qs, QMax; struct Items* QS;
-  Rule StartR = Allocate(2 * sizeof(Symbol));
-  StartR[0] = *Start, StartR[1] = 0;
-  Its = Allocate(sizeof(struct Item*)), Its[0] = FormItem(0, StartR);
-  SList = 0, STab = 0, Ss = 0; AddState(1, Its);
-  XTab = 0, XMax = 0;
-  QBuf = 0, QMax = 0;
-  for (S = 0; S < Ss; S++) {
-    unsigned ERs, RRs, E, R; unsigned char Final;
-    QS = &STab[S];
-    if (QS->Size > QMax)
-      QMax = QS->Size, QBuf = Reallocate(QBuf, QMax * sizeof(struct Item*));
-    for (Qs = 0; Qs < QS->Size; Qs++)
-      QBuf[Qs] = QS->List[Qs];
-    for (ERs = RRs = 0, Final = 0, Xs = 0, Q = 0; Q < Qs; Q++) {
-      It = QBuf[Q];
-      if (*It->Pos == 0) {
-        if (It->LHS == 0) Final++;
-        else if (*It->RHS == 0) ERs++; else RRs++;
-      } else {
-        Symbol Pre = *It->Pos++; struct Items* IS = GetItem(Pre);
-        if (IS->Size == 0) {
-          if (Qs + Pre->Rules > QMax)
-            QMax = Qs + Pre->Rules,
-              QBuf = Reallocate(QBuf, QMax * sizeof(struct Item*));
-          for (R = 0; R < Pre->Rules; R++, Qs++)
-            QBuf[Qs] = FormItem(Pre, Pre->RList[R]);
-        }
-        AddItem(IS, It);
-        --It->Pos;
-      }
-    }
-    MakeState(&SList[S], Final, ERs, RRs, Xs);
-    for (E = R = 0, Q = 0; Q < Qs; Q++) {
-      It = QBuf[Q];
-      if (*It->Pos != 0 || It->LHS == 0) continue;
-      if (*It->RHS == 0) SList[S].EList[E++] = It->LHS;
-      else {
-          struct Reduce* Rd = &SList[S].RList[R++];
-          Rd->LHS = It->LHS, Rd->RHS = It->RHS;
-        }
-    }
-    for (X = 0; X < Xs; X++) {
-      struct Shift* Sh = &SList[S].SList[X];
-      Sh->X = XTab[X].Pre, Sh->Q = AddState(XTab[X].Size, XTab[X].List);
-    }
-  }
-  FREE(XTab);
-  FREE(QBuf);
-}
-#endif
-
 static Symbol* lookup(Grammar* grammar, Slice name, unsigned literal) {
   Symbol* symbol = 0;
   int created = symtab_lookup(grammar->symtab, name, literal, &symbol);
