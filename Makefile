@@ -1,12 +1,12 @@
-# CC = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
-# LD = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
-CC = cc
-LD = cc
+CC = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
+LD = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
+# CC = cc
+# LD = cc
 
 AFLAGS += -std=c11
 AFLAGS += -g
-# AFLAGS += -fsanitize=undefined
-# AFLAGS += -fsanitize=address   # cannot be used with thread
+AFLAGS += -fsanitize=undefined
+AFLAGS += -fsanitize=address   # cannot be used with thread
 # AFLAGS += -fsanitize=thread  # cannot be used with address
 # AFLAGS += -fsanitize=memory  # not supported on M1
 
