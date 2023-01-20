@@ -152,7 +152,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     /* SHIFT */
     pos = next_symbol(forest, text, pos, &Word);
     if (Word == 0) break;
-    printf(" %.*s", Word->name.len, Word->name.ptr);
+    // printf(" %.*s", Word->name.len, Word->name.ptr);
     P = Allocate(sizeof(struct Subnode));
     P->Size = 1;
     P->Cur = AddSub(forest, Word, 0);
@@ -178,7 +178,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     }
   }
   /* ACCEPT */
-  putchar('\n');
+  // printf("\n");
   for (W = forest->VertP; W < forest->VertE; W++) {
     struct Vertex* V = &forest->VertTab[W];
     if (V->Val->Final) {
@@ -409,7 +409,7 @@ static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** s
     ++forest->Position;
   } while (0);
 
-  LOG_INFO("symbol %p [%.*s]", *sym, *sym ? (*sym)->name.len : 0, *sym ? (*sym)->name.ptr : 0);
+  LOG_DEBUG("symbol %p [%.*s]", *sym, *sym ? (*sym)->name.len : 0, *sym ? (*sym)->name.ptr : 0);
   return pos;
 }
 
