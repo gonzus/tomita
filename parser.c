@@ -23,6 +23,24 @@ Parser* parser_create(Grammar* grammar) {
 }
 
 void parser_destroy(Parser* parser) {
+  if (parser->STab) {
+      for (unsigned j = 0; j < parser->Ss; ++j) {
+          for (unsigned k = 0; k < parser->STab[j].Size; ++k) {
+              // FREE(parser->STab[j].List[k]->RHS);
+              FREE(parser->STab[j].List[k]);
+          }
+          FREE(parser->STab[j].List);
+      }
+      FREE(parser->STab);
+  }
+  if (parser->SList) {
+      for (unsigned j = 0; j < parser->Ss; ++j) {
+          FREE(parser->SList[j].EList);
+          FREE(parser->SList[j].RList);
+          FREE(parser->SList[j].SList);
+      }
+      FREE (parser->SList);
+  }
   FREE(parser);
 }
 
@@ -105,6 +123,9 @@ static void parser_build(Parser* parser) {
       Sh->X = XTab[X].Pre, Sh->Q = state_add(parser, XTab[X].Size, XTab[X].List);
     }
   }
+  // for (unsigned X = 0; X < XMax; X++) {
+  //     FREE(XTab[X].List);
+  // }
   FREE(XTab);
   FREE(QBuf);
 }
@@ -214,9 +235,17 @@ static void state_make(struct State* S, unsigned char Final, unsigned new_Es, un
 }
 
 static int item_compare(struct Item* A, struct Item* B) {
-  int Diff =
-    A->LHS == 0 ? (B->LHS == 0 ? 0 : -1):
-    B->LHS == 0 ? +1 : A->LHS->index - B->LHS->index;
+  int Diff = 0;
+
+  if (A->LHS == 0 && B->LHS == 0) {
+      Diff = 0;
+  } else if (A->LHS == 0) {
+      Diff = -1;
+  } else if (B->LHS == 0) {
+      Diff = +1;
+  } else {
+      Diff = A->LHS->index - B->LHS->index;
+  }
   if (Diff != 0) return Diff;
 
   Diff = (A->Pos - A->RHS) - (B->Pos - B->RHS);

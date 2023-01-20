@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -63,16 +64,16 @@ static void show_usage(const char* prog) {
 
 int main(int argc, char **argv) {
   int c;
-  while ((c = getopt(argc, argv, "g:c:s:?")) != -1) {
+  while ((c = getopt(argc, argv, "csg:?")) != -1) {
     switch (c) {
       case 'g':
         opt_grammar = optarg;
         break;
       case 'c':
-        opt_table = atoi(optarg);
+        opt_table = 1;
         break;
       case 's':
-        opt_stack = atoi(optarg);
+        opt_stack = 1;
         break;
       case '?':
       default:
