@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "log.h"
+#include "mem.h"
 #include "symtab.h"
 
 SymTab* symtab_create(void) {
@@ -17,7 +18,7 @@ void symtab_destroy(SymTab* symtab) {
       symbol_destroy(tmp);
     }
   }
-  free(symtab);
+  FREE(symtab);
 }
 
 // TODO: (as in every project) use better hash function?

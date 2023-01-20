@@ -23,7 +23,7 @@ Parser* parser_create(Grammar* grammar) {
 }
 
 void parser_destroy(Parser* parser) {
-  free(parser);
+  FREE(parser);
 }
 
 static void parser_build(Parser* parser) {
@@ -105,8 +105,8 @@ static void parser_build(Parser* parser) {
       Sh->X = XTab[X].Pre, Sh->Q = state_add(parser, XTab[X].Size, XTab[X].List);
     }
   }
-  free(XTab);
-  free(QBuf);
+  FREE(XTab);
+  FREE(QBuf);
 }
 
 void parser_show(Parser* parser) {
@@ -151,7 +151,7 @@ static int state_add(Parser* parser, unsigned int Size, struct Item** List) {
       if (item_compare(IS->List[I], List[I]) != 0) break;
     }
     if (I >= IS->Size) {
-      free(List);
+      FREE(List);
       return S;
     }
   }

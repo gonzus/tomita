@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "mem.h"
 #include "log.h"
+#include "mem.h"
 #include "symbol.h"
 
 static unsigned COUNTER = 0;
@@ -19,10 +19,10 @@ Symbol* symbol_create(Slice name, unsigned literal) {
 
 void symbol_destroy(Symbol* symbol) {
   for (unsigned j = 0; j < symbol->rule_count; ++j) {
-    free(symbol->rules[j]);
+    FREE(symbol->rules[j]);
   }
-  free(symbol->rules);
-  free(symbol);
+  FREE(symbol->rules);
+  FREE(symbol);
 }
 
 void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {

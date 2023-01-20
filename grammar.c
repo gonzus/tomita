@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "log.h"
+#include "mem.h"
 #include "grammar.h"
 
 #define MAX_SYM 0x100
@@ -135,7 +136,7 @@ END:
 
 void grammar_destroy(Grammar* grammar) {
   symtab_destroy(grammar->symtab);
-  free(grammar);
+  FREE(grammar);
 }
 
 unsigned grammar_check(Grammar* grammar) {

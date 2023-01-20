@@ -4,6 +4,7 @@
 #include <string.h>
 #include "log.h"
 #include "mem.h"
+#include "util.h"
 #include "forest.h"
 
 struct Subnode {
@@ -73,7 +74,7 @@ Forest* forest_create(Parser* parser) {
 
 void forest_destroy(Forest* forest) {
   forest_cleanup(forest);
-  free(forest);
+  FREE(forest);
 }
 
 static void forest_prepare(Forest* forest) {
@@ -107,24 +108,24 @@ static void forest_cleanup(Forest* forest) {
     for (S = 0; S < Nd->Subs; S++) {
       FreeSub(Nd->Sub[S]);
     }
-    free(Nd->Sub);
+    FREE(Nd->Sub);
   }
-  free(forest->NodeTab);
+  FREE(forest->NodeTab);
   forest->NodeE = forest->NodeP = 0;
   for (W = 0; W < forest->VertE; W++) {
     V = &forest->VertTab[W];
     for (Z = 0; Z < V->Size; Z++) {
       ZN = V->List[Z];
-      free(ZN->List);
-      free(ZN);
+      FREE(ZN->List);
+      FREE(ZN);
     }
-    free(V->List);
+    FREE(V->List);
   }
-  free(forest->VertTab);
+  FREE(forest->VertTab);
   forest->VertE = forest->VertP = 0;
-  free(forest->REDS);
+  FREE(forest->REDS);
   forest->RE = forest->RP = 0;
-  free(forest->EREDS);
+  FREE(forest->EREDS);
   forest->EE = forest->EP = 0;
 }
 
@@ -192,7 +193,7 @@ static void FreeSub(struct Subnode* A) {
   while (A != 0) {
     if (--A->Links > 0) break;
     struct Subnode* Next = A->Next;
-    free(A);
+    FREE(A);
     A = Next;
   }
 }
@@ -245,7 +246,7 @@ static void Reduce1(Forest* forest, struct ZNode* Z, Symbol* L, Rule R) {
       AddN(forest, N, Z->List[W]);
     }
   }
-  free(forest->PathTab);
+  FREE(forest->PathTab);
   PathP = forest->PathE = 0;
 }
 
@@ -414,7 +415,7 @@ static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** s
 }
 
 void forest_show_node(Forest* forest, struct Node* node) {
-  (void) forest;
+  UNUSED(forest);
   Slice name = node->Sym->name;
   if (node->Sym->literal) {
     printf(" \"%.*s\"", name.len, name.ptr);
