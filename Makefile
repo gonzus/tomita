@@ -19,16 +19,13 @@ all:	tom
 C_SRC = \
 	forest.c \
 	grammar.c \
-	lex.c \
 	log.c \
 	main.c \
 	mem.c \
 	parser.c \
 	slice.c \
-	sym.c \
 	symbol.c \
 	symtab.c \
-	tomita.c \
 	util.c \
 
 C_OBJ = $(C_SRC:.c=.o)
