@@ -6,6 +6,7 @@
 // #include "tomita.h"
 #include "grammar.h"
 #include "parser.h"
+#include "forest.h"
 
 #define MAX_BUF (1024*1024)
 
@@ -35,14 +36,16 @@ int main(int argc, char **argv) {
 #if 1
   Grammar* grammar = 0;
   Parser* parser = 0;
+  Forest* forest = 0;
   do {
-    char buf[MAX_BUF];
-    unsigned len = slurp_file(argv[Arg], buf, MAX_BUF);
+  unsigned len = 0;
+    char buf_grammar[MAX_BUF];
+    len = slurp_file(argv[Arg+0], buf_grammar, MAX_BUF);
     if (len <= 0) break;
-    LOG_INFO("read %u bytes from [%s]", len, argv[Arg]);
-    Slice text = slice_from_memory(buf, len);
+    LOG_INFO("read %u bytes from [%s]", len, argv[Arg+0]);
+    Slice text_grammar = slice_from_memory(buf_grammar, len);
 
-    grammar = grammar_create(text);
+    grammar = grammar_create(text_grammar);
     if (!grammar) break;
     LOG_INFO("created grammar");
 
@@ -58,9 +61,38 @@ int main(int argc, char **argv) {
 
     parser_build(parser, grammar);
     LOG_INFO("built parser from grammar");
-    parser_show(parser);
+    if (DoC) {
+      parser_show(parser);
+    }
+
+    char buf_input[MAX_BUF];
+    len = slurp_file(argv[Arg+1], buf_input, MAX_BUF);
+    if (len <= 0) break;
+    LOG_INFO("read %u bytes from [%s]", len, argv[Arg+1]);
+    Slice text_input = slice_from_memory(buf_input, len);
+
+    forest = forest_create(grammar, parser);
+    LOG_INFO("created forest");
+
+    struct Node* Nd = forest_parse(forest, text_input);
+    LOG_INFO("parsed input, got %p", Nd);
+    if (Nd) {
+      putchar('*');
+      forest_show_node(forest, Nd);
+      printf(".\n");
+    }
+
+    LOG_INFO("complete forest:");
+    forest_show(forest);
+
+    if (DoS) {
+      LOG_INFO("parse stack:");
+      forest_show_stack(forest);
+    }
   } while (0);
 
+  if (forest)
+    forest_destroy(forest);
   if (parser)
     parser_destroy(parser);
   if (grammar)

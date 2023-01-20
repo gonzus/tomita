@@ -17,6 +17,7 @@ LDFLAGS += $(AFLAGS)
 all:	tom
 
 C_SRC = \
+	forest.c \
 	grammar.c \
 	lex.c \
 	log.c \
