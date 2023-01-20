@@ -13,6 +13,8 @@ static int item_compare(struct Item* A, struct Item* B);
 
 static void state_make(struct State* S, unsigned char Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss);
 static int state_add(Parser* parser, unsigned int Size, struct Item** List);
+static struct Item* item_ref(struct Item* item);
+static void item_unref(struct Item* item);
 
 Parser* parser_create(Grammar* grammar) {
   Parser* parser = (Parser*) malloc(sizeof(Parser));
@@ -24,22 +26,21 @@ Parser* parser_create(Grammar* grammar) {
 
 void parser_destroy(Parser* parser) {
   if (parser->STab) {
-      for (unsigned j = 0; j < parser->Ss; ++j) {
-          for (unsigned k = 0; k < parser->STab[j].Size; ++k) {
-              // FREE(parser->STab[j].List[k]->RHS);
-              FREE(parser->STab[j].List[k]);
-          }
-          FREE(parser->STab[j].List);
+    for (unsigned j = 0; j < parser->Ss; ++j) {
+      for (unsigned k = 0; k < parser->STab[j].Size; ++k) {
+        item_unref(parser->STab[j].List[k]);
       }
-      FREE(parser->STab);
+      FREE(parser->STab[j].List);
+    }
+    FREE(parser->STab);
   }
   if (parser->SList) {
-      for (unsigned j = 0; j < parser->Ss; ++j) {
-          FREE(parser->SList[j].EList);
-          FREE(parser->SList[j].RList);
-          FREE(parser->SList[j].SList);
-      }
-      FREE (parser->SList);
+    for (unsigned j = 0; j < parser->Ss; ++j) {
+      FREE(parser->SList[j].EList);
+      FREE(parser->SList[j].RList);
+      FREE(parser->SList[j].SList);
+    }
+    FREE (parser->SList);
   }
   FREE(parser);
 }
@@ -62,6 +63,7 @@ static void parser_build(Parser* parser) {
 
   struct Item** QBuf = 0;
   unsigned QMax = 0;
+  unsigned Qs = 0;
 
   for (unsigned S = 0; S < parser->Ss; ++S) {
     unsigned ERs;
@@ -69,7 +71,6 @@ static void parser_build(Parser* parser) {
     unsigned E;
     unsigned Q;
     unsigned R;
-    unsigned Qs;
     unsigned Xs = 0;
     unsigned char Final;
     struct Items* QS = &parser->STab[S];
@@ -78,7 +79,7 @@ static void parser_build(Parser* parser) {
       QBuf = Reallocate(QBuf, QMax * sizeof(struct Item*));
     }
     for (Qs = 0; Qs < QS->Size; Qs++) {
-      QBuf[Qs] = QS->List[Qs];
+      QBuf[Qs] = item_ref(QS->List[Qs]);
     }
     for (ERs = RRs = 0, Final = 0, Xs = 0, Q = 0; Q < Qs; ++Q) {
       struct Item* It = QBuf[Q];
@@ -115,19 +116,22 @@ static void parser_build(Parser* parser) {
         parser->SList[S].EList[E++] = It->LHS;
       } else {
         struct Reduce* Rd = &parser->SList[S].RList[R++];
-        Rd->LHS = It->LHS, Rd->RHS = It->RHS;
+        Rd->LHS = It->LHS;
+        Rd->RHS = It->RHS;
       }
     }
     for (unsigned X = 0; X < Xs; X++) {
       struct Shift* Sh = &parser->SList[S].SList[X];
-      Sh->X = XTab[X].Pre, Sh->Q = state_add(parser, XTab[X].Size, XTab[X].List);
+      Sh->X = XTab[X].Pre;
+      Sh->Q = state_add(parser, XTab[X].Size, XTab[X].List);
+    }
+    for (Q = 0; Q < Qs; ++Q) {
+        item_unref(QBuf[Q]);
     }
   }
-  // for (unsigned X = 0; X < XMax; X++) {
-  //     FREE(XTab[X].List);
-  // }
   FREE(XTab);
   FREE(QBuf);
+  FREE(StartR);
 }
 
 void parser_show(Parser* parser) {
@@ -156,7 +160,9 @@ void parser_show(Parser* parser) {
 }
 
 static struct Item* item_make(Symbol* LHS, Rule RHS) {
-  struct Item* It = Allocate(sizeof *It);
+  struct Item* It = Allocate(sizeof(struct Item));
+  memset(It, 0, sizeof(struct Item));
+  item_ref(It);
   It->LHS = LHS;
   It->Pos = It->RHS = RHS;
   return It;
@@ -172,6 +178,9 @@ static int state_add(Parser* parser, unsigned int Size, struct Item** List) {
       if (item_compare(IS->List[I], List[I]) != 0) break;
     }
     if (I >= IS->Size) {
+      for (I = 0; I < Size; I++) {
+        item_unref(List[I]);
+      }
       FREE(List);
       return S;
     }
@@ -205,9 +214,15 @@ static struct Items* item_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, un
   return &(*XTab)[X];
 }
 
-static struct Item* item_copy(struct Item* A) {
-  struct Item* B = Allocate(sizeof *B);
+static struct Item* item_clone(struct Item* A) {
+  struct Item* B = Allocate(sizeof(struct Item));
+  memset(B, 0, sizeof(struct Item));
   *B = *A;
+
+  // careful with the clone's reference count!
+  B->Links = 0;
+  item_ref(B);
+
   return B;
 }
 
@@ -224,12 +239,12 @@ static void item_add(struct Items* Q, struct Item* It) {
   for (unsigned J = Q->Size++; J > I; J--) {
     Q->List[J] = Q->List[J - 1];
   }
-  Q->List[I] = item_copy(It);
+  Q->List[I] = item_clone(It);
 }
 
 static void state_make(struct State* S, unsigned char Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss) {
   S->Final = Final;
-  S->Es = new_Es, S->EList = new_Es == 0 ? 0 : Allocate(new_Es * sizeof(Symbol));
+  S->Es = new_Es, S->EList = new_Es == 0 ? 0 : Allocate(new_Es * sizeof(Symbol*));
   S->Rs = new_Rs, S->RList = new_Rs == 0 ? 0 : Allocate(new_Rs * sizeof(struct Reduce));
   S->Ss = new_Ss, S->SList = new_Ss == 0 ? 0 : Allocate(new_Ss * sizeof(struct Shift));
 }
@@ -258,4 +273,16 @@ static int item_compare(struct Item* A, struct Item* B) {
     if (Diff != 0) break;
   }
   return *AP == 0 ? (*BP == 0 ? 0 : -1) : *BP == 0 ? +1 : Diff;
+}
+
+static struct Item* item_ref(struct Item* item) {
+  ++item->Links;
+  return item;
+}
+
+static void item_unref(struct Item* item) {
+  if (!item->Links) return;
+  --item->Links;
+  if (item->Links) return;
+  FREE(item);
 }

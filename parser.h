@@ -6,6 +6,7 @@ struct Item {
   Symbol* LHS;
   Rule RHS;
   Rule Pos;
+  unsigned Links;
 };
 
 struct Items {
