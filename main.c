@@ -1,11 +1,16 @@
 #include <stdio.h>
+#include <unistd.h>
 #include "util.h"
 #include "log.h"
 #include "forest.h"
 
 #define MAX_BUF (1024*1024)
 
-static void process_line(Forest* forest, Slice line, int DoS) {
+static char* opt_grammar = 0;
+static int opt_stack = 0;
+static int opt_table = 0;
+
+static void process_line(Forest* forest, Slice line) {
     LOG_INFO("parsing line [%.*s]", line.len, line.ptr);
 
     struct Node* Nd = forest_parse(forest, line);
@@ -19,13 +24,13 @@ static void process_line(Forest* forest, Slice line, int DoS) {
     LOG_INFO("complete forest:");
     forest_show(forest);
 
-    if (DoS) {
+    if (opt_stack) {
       LOG_INFO("parse stack:");
       forest_show_stack(forest);
     }
 }
 
-static void process_path(Forest* forest, const char* path, int DoS) {
+static void process_path(Forest* forest, const char* path) {
   FILE* fp = 0;
   do {
     fp = fopen(path, "r");
@@ -36,45 +41,58 @@ static void process_path(Forest* forest, const char* path, int DoS) {
       if (!fgets(buf, MAX_BUF, fp)) break;
       Slice raw = slice_from_string(buf, 0);
       Slice line = slice_trim(raw);
-      process_line(forest, line, DoS);
+      process_line(forest, line);
     }
   } while (0);
   if (fp)
     fclose(fp);
 }
 
+static void show_usage(const char* prog) {
+  printf(
+      "Usage: %s -gsc? data ...\n"
+      "    -g ...... use this grammar file (required)\n"
+      "    -c ...... display parsing table\n"
+      "    -s ...... display parsing stack\n"
+      "    -? ...... print this help\n",
+      prog
+    );
+}
+
 int main(int argc, char **argv) {
-  int Arg; char *AP;
-  int DoC = 0, DoS = 0, DoH = 0;
-  for (Arg = 1; Arg < argc; Arg++) {
-    AP = argv[Arg];
-    if (*AP++ != '-') break;
-    for (; *AP != '\0'; AP++)
-      switch (*AP) {
-        case 's': DoS++; break;
-        case 'c': DoC++; break;
-        default: DoH++; break;
-      }
+  int c;
+  while ((c = getopt(argc, argv, "g:c:s:?")) != -1) {
+    switch (c) {
+      case 'g':
+        opt_grammar = optarg;
+        break;
+      case 'c':
+        opt_table = atoi(optarg);
+        break;
+      case 's':
+        opt_stack = atoi(optarg);
+        break;
+      case '?':
+      default:
+        show_usage(argv[0]);
+        return 0;
+    }
   }
-  if (DoH || Arg >= argc) {
-    printf(
-        "Usage: tom -sc? grammar\n"
-        "    -c ...... display parsing table\n"
-        "    -s ...... display parsing stack\n"
-        "    -h/-? ... print this list\n"
-      );
-    return 1;
+  if (!opt_grammar) {
+    show_usage(argv[0]);
+    return 0;
   }
+  argc -= optind;
+  argv += optind;
 
   Grammar* grammar = 0;
   Parser* parser = 0;
   Forest* forest = 0;
-
   do {
     char buf[MAX_BUF];
-    unsigned len = slurp_file(argv[Arg+0], buf, MAX_BUF);
+    unsigned len = slurp_file(opt_grammar, buf, MAX_BUF);
     if (len <= 0) break;
-    LOG_INFO("read %u bytes from [%s]", len, argv[Arg+0]);
+    LOG_INFO("read %u bytes from [%s]", len, opt_grammar);
     Slice text_grammar = slice_from_memory(buf, len);
 
     grammar = grammar_create(text_grammar);
@@ -90,14 +108,16 @@ int main(int argc, char **argv) {
     parser = parser_create(grammar);
     if (!parser) break;
     LOG_INFO("created parser");
-    if (DoC) {
+    if (opt_table) {
       parser_show(parser);
     }
 
     forest = forest_create(parser);
     LOG_INFO("created forest");
 
-    process_path(forest, argv[Arg+1], DoS);
+    for (int j = 0; j < argc; ++j) {
+      process_path(forest, argv[j]);
+    }
   } while (0);
 
   if (forest)
