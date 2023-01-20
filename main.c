@@ -1,14 +1,47 @@
 #include <stdio.h>
 #include "util.h"
 #include "log.h"
-// #include "lex.h"
-// #include "sym.h"
-// #include "tomita.h"
-#include "grammar.h"
-#include "parser.h"
 #include "forest.h"
 
 #define MAX_BUF (1024*1024)
+
+static void process_line(Forest* forest, Slice line, int DoS) {
+    LOG_INFO("parsing line [%.*s]", line.len, line.ptr);
+
+    struct Node* Nd = forest_parse(forest, line);
+    LOG_INFO("parsed input, got %p", Nd);
+    if (Nd) {
+      putchar('*');
+      forest_show_node(forest, Nd);
+      printf(".\n");
+    }
+
+    LOG_INFO("complete forest:");
+    forest_show(forest);
+
+    if (DoS) {
+      LOG_INFO("parse stack:");
+      forest_show_stack(forest);
+    }
+}
+
+static void process_path(Forest* forest, const char* path, int DoS) {
+  FILE* fp = 0;
+  do {
+    fp = fopen(path, "r");
+    if (!fp) break;
+
+    while (1) {
+      char buf[MAX_BUF];
+      if (!fgets(buf, MAX_BUF, fp)) break;
+      Slice raw = slice_from_string(buf, 0);
+      Slice line = slice_trim(raw);
+      process_line(forest, line, DoS);
+    }
+  } while (0);
+  if (fp)
+    fclose(fp);
+}
 
 int main(int argc, char **argv) {
   int Arg; char *AP;
@@ -33,17 +66,16 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-#if 1
   Grammar* grammar = 0;
   Parser* parser = 0;
   Forest* forest = 0;
+
   do {
-  unsigned len = 0;
-    char buf_grammar[MAX_BUF];
-    len = slurp_file(argv[Arg+0], buf_grammar, MAX_BUF);
+    char buf[MAX_BUF];
+    unsigned len = slurp_file(argv[Arg+0], buf, MAX_BUF);
     if (len <= 0) break;
     LOG_INFO("read %u bytes from [%s]", len, argv[Arg+0]);
-    Slice text_grammar = slice_from_memory(buf_grammar, len);
+    Slice text_grammar = slice_from_memory(buf, len);
 
     grammar = grammar_create(text_grammar);
     if (!grammar) break;
@@ -55,40 +87,17 @@ int main(int argc, char **argv) {
       break;
     }
 
-    parser = parser_create();
+    parser = parser_create(grammar);
     if (!parser) break;
     LOG_INFO("created parser");
-
-    parser_build(parser, grammar);
-    LOG_INFO("built parser from grammar");
     if (DoC) {
       parser_show(parser);
     }
 
-    char buf_input[MAX_BUF];
-    len = slurp_file(argv[Arg+1], buf_input, MAX_BUF);
-    if (len <= 0) break;
-    LOG_INFO("read %u bytes from [%s]", len, argv[Arg+1]);
-    Slice text_input = slice_from_memory(buf_input, len);
-
-    forest = forest_create(grammar, parser);
+    forest = forest_create(parser);
     LOG_INFO("created forest");
 
-    struct Node* Nd = forest_parse(forest, text_input);
-    LOG_INFO("parsed input, got %p", Nd);
-    if (Nd) {
-      putchar('*');
-      forest_show_node(forest, Nd);
-      printf(".\n");
-    }
-
-    LOG_INFO("complete forest:");
-    forest_show(forest);
-
-    if (DoS) {
-      LOG_INFO("parse stack:");
-      forest_show_stack(forest);
-    }
+    process_path(forest, argv[Arg+1], DoS);
   } while (0);
 
   if (forest)
@@ -97,37 +106,6 @@ int main(int argc, char **argv) {
     parser_destroy(parser);
   if (grammar)
     grammar_destroy(grammar);
-#endif
-
-#if 0
-  if (!OPEN(argv[Arg])) {
-    fprintf(stderr, "Cannot open %s.\n", argv[Arg]);
-    return 1;
-  }
-
-  int ERRORS = 0;
-  Symbol Start;
-  CreateGrammar(&Start, &ERRORS);
-  CLOSE();
-  Check(&ERRORS);
-
-  Generate(&Start);
-  if (DoC) SHOW_STATES();
-  while (1) {
-    SetTables();
-    struct Node* Nd = Parse();
-    if (Position == 0) break;
-    printf("\nParse Forest:\n");
-    if (Nd != 0) {
-      putchar('*'); SHOW_NODE(Nd - NodeTab); printf(".\n");
-    }
-    SHOW_FOREST();
-    if (DoS) {
-      printf("\nParse Stack:\n"), SHOW_STACK();
-    }
-    FreeTables();
-  }
-#endif
 
   return 0;
 }

@@ -50,6 +50,8 @@ struct ERed {
   Symbol* LHS;
 };
 
+static void forest_prepare(Forest* forest);
+static void forest_cleanup(Forest* forest);
 static void FreeSub(struct Subnode* A);
 static unsigned AddQ(Forest* forest, struct State* S);
 static void Reduce1(Forest* forest, struct ZNode* Z, Symbol* L, Rule R);
@@ -62,19 +64,23 @@ static struct State* Next(Forest* forest, struct State* Q, Symbol* Sym);
 static int EqualS(struct Subnode* A, struct Subnode* B);
 static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** sym);
 
-Forest* forest_create(Grammar* grammar, Parser* parser) {
+Forest* forest_create(Parser* parser) {
   Forest* forest = (Forest*) malloc(sizeof(Forest));
   memset(forest, 0, sizeof(Forest));
-  forest->grammar = grammar;
   forest->parser = parser;
   return forest;
 }
 
 void forest_destroy(Forest* forest) {
+  forest_cleanup(forest);
   free(forest);
 }
 
-void forest_prepare(Forest* forest) {
+static void forest_prepare(Forest* forest) {
+  if (forest->prepared) return;
+  forest->prepared = 1;
+  LOG_INFO("preparing forest");
+
   forest->NodeTab = 0;
   forest->NodeE = 0;
   forest->Position = 0;
@@ -90,7 +96,11 @@ void forest_prepare(Forest* forest) {
   forest->VertP = forest->VertE;
 }
 
-void forest_cleanup(Forest* forest) {
+static void forest_cleanup(Forest* forest) {
+  if (!forest->prepared) return;
+  forest->prepared = 0;
+  LOG_INFO("cleaning up forest");
+
   unsigned int N, S, W, Z; struct Vertex* V; struct ZNode* ZN; struct Node* Nd;
   for (N = 0; N < forest->NodeE; N++) {
     Nd = &forest->NodeTab[N];
@@ -126,6 +136,8 @@ struct Node* forest_parse(Forest* forest, Slice text) {
   unsigned N;
   unsigned W;
   struct Subnode* P;
+  forest_cleanup(forest);
+  forest_prepare(forest);
   AddQ(forest, &forest->parser->SList[0]);
   while (1) {
     /* REDUCE */
@@ -149,7 +161,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     VP = forest->VertP, forest->VertP = forest->VertE; forest->NodeP = forest->NodeE;
     if (Word->rule_count == 0) { /* Treat the word as a new word. */
       Symbol* S;
-      for (S = forest->grammar->first; S != 0; S = S->tail) {
+      for (S = forest->parser->grammar->first; S != 0; S = S->tail) {
         if (S->rule_count > 0) continue;
         N = AddSub(forest, S, P);
         for (W = VP; W < forest->VertP; W++) {
@@ -393,7 +405,7 @@ static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** s
     unsigned beg = pos;
     while (pos < text.len && !isspace(text.ptr[pos])) ++pos;
     Slice name = slice_from_memory(text.ptr + beg, pos - beg);
-    symtab_lookup(forest->grammar->symtab, name, 1, sym);
+    symtab_lookup(forest->parser->grammar->symtab, name, 1, sym);
     ++forest->Position;
   } while (0);
 

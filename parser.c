@@ -5,6 +5,7 @@
 #include "mem.h"
 #include "parser.h"
 
+static void parser_build(Parser* parser);
 static struct Item* item_make(Symbol* LHS, Rule RHS);
 static struct Items* item_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, unsigned* XMax);
 static void item_add(struct Items* Q, struct Item* It);
@@ -13,9 +14,11 @@ static int item_compare(struct Item* A, struct Item* B);
 static void state_make(struct State* S, unsigned char Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss);
 static int state_add(Parser* parser, unsigned int Size, struct Item** List);
 
-Parser* parser_create(void) {
+Parser* parser_create(Grammar* grammar) {
   Parser* parser = (Parser*) malloc(sizeof(Parser));
   memset(parser, 0, sizeof(Parser));
+  parser->grammar = grammar;
+  parser_build(parser);
   return parser;
 }
 
@@ -23,9 +26,9 @@ void parser_destroy(Parser* parser) {
   free(parser);
 }
 
-void parser_build(Parser* parser, Grammar* grammar) {
+static void parser_build(Parser* parser) {
   Rule StartR = Allocate(2 * sizeof(Symbol*));
-  StartR[0] = grammar->start;
+  StartR[0] = parser->grammar->start;
   StartR[1] = 0;
 
   struct Item** Its = Allocate(sizeof(struct Item*));

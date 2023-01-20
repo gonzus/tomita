@@ -2,11 +2,10 @@
 
 #include "symbol.h"
 #include "parser.h"
-#include "grammar.h"
 
 typedef struct Forest {
   Parser* parser;
-  Grammar* grammar;
+  int prepared;
   unsigned Position;
 
   struct Node* NodeTab;
@@ -29,11 +28,8 @@ typedef struct Forest {
   unsigned EE;
 } Forest;
 
-Forest* forest_create(Grammar* grammar, Parser* parser);
+Forest* forest_create(Parser* parser);
 void forest_destroy(Forest* forest);
-
-void forest_prepare(Forest* forest);
-void forest_cleanup(Forest* forest);
 
 struct Node* forest_parse(Forest* forest, Slice text);
 

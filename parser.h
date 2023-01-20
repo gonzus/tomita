@@ -35,13 +35,13 @@ struct State {
 };
 
 typedef struct Parser {
+  Grammar* grammar;
   struct State* SList;
 
   struct Items* STab;
   unsigned Ss;
 } Parser;
 
-Parser* parser_create(void);
+Parser* parser_create(Grammar* grammar);
 void parser_destroy(Parser* parser);
-void parser_build(Parser* parser, Grammar* grammar);
 void parser_show(Parser* parser);
