@@ -11,23 +11,24 @@ static int opt_stack = 0;
 static int opt_table = 0;
 
 static void process_line(Forest* forest, Slice line) {
-    LOG_INFO("parsing line [%.*s]", line.len, line.ptr);
+  LOG_INFO("parsing line [%.*s]", line.len, line.ptr);
 
-    struct Node* Nd = forest_parse(forest, line);
-    LOG_INFO("parsed input, got %p", Nd);
-    if (Nd) {
-      putchar('*');
-      forest_show_node(forest, Nd);
-      printf(".\n");
-    }
+  struct Node* Nd = forest_parse(forest, line);
+  LOG_INFO("parsed input, got %p", Nd);
+  if (Nd) {
+    putchar('*');
+    forest_show_node(forest, Nd);
+    putchar('.');
+    putchar('\n');
+  }
 
-    LOG_INFO("complete forest:");
-    forest_show(forest);
+  LOG_INFO("complete forest:");
+  forest_show(forest);
 
-    if (opt_stack) {
-      LOG_INFO("parse stack:");
-      forest_show_stack(forest);
-    }
+  if (opt_stack) {
+    LOG_INFO("parse stack:");
+    forest_show_stack(forest);
+  }
 }
 
 static void process_path(Forest* forest, const char* path) {

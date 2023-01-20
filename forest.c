@@ -466,13 +466,21 @@ void forest_show_stack(Forest* forest) {
   for (W = 0; W < forest->VertE; W++) {
     V = &forest->VertTab[W];
     show_vertex(forest, W);
-    if (V->Size > 0) printf(" <=\t"); else putchar('\n');
+    if (V->Size > 0) {
+      printf(" <=\t");
+    } else {
+      putchar('\n');
+    }
     for (Z = 0; Z < V->Size; Z++) {
-      if (Z > 0) putchar('\t'), putchar('\t');
+      if (Z > 0) {
+        printf("\t\t");
+      }
       N = V->List[Z];
       struct Node* node = &forest->NodeTab[N->Val];
       printf(" ["), forest_show_node(forest, node), printf(" ] <=");
-      for (W1 = 0; W1 < N->Size; W1++) show_vertex(forest, N->List[W1]);
+      for (W1 = 0; W1 < N->Size; W1++) {
+        show_vertex(forest, N->List[W1]);
+      }
       putchar('\n');
     }
   }

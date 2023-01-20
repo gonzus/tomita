@@ -28,5 +28,3 @@
   } while (0)
 
 unsigned slurp_file(const char* path, char* buf, unsigned cap);
-
-void ERROR(int line, int* errors, const char *Format, ...);
