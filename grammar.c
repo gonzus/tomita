@@ -21,117 +21,115 @@ static Symbol* sym_buf[MAX_SYM];
 static Symbol** sym_pos;
 
 static Symbol* lookup(Grammar* grammar, Slice name, unsigned literal);
-static unsigned next_token(Slice text, unsigned pos, Token* tok);
+static unsigned input_flush(Slice text, unsigned pos, Token* tok);
+static unsigned input_token(Slice text, unsigned pos, Token* tok);
 
 Grammar* grammar_create(Slice text) {
-  Grammar* grammar = (Grammar*) malloc(sizeof(Grammar));
-  memset(grammar, 0, sizeof(Grammar));
+  Grammar* grammar = 0;
+  MALLOC(Grammar, grammar);
   grammar->symtab = symtab_create();
 
+  int saw_start = 0;
   unsigned pos = 0;
   Token tok = {0};
-  int saw_start = 0;
-  Symbol* lhs = 0;
-  pos = next_token(text, pos, &tok);
+  pos = input_token(text, pos, &tok);
+  for (int done = 0; !done;) {
+    int do_equal = 0;
+    switch (tok.typ) {
+      case EndT:
+        done = 1;
+        continue;
 
-  // TODO: how to structure this without any gotos?
-START:
-  switch (tok.typ) {
-    case EndT:
-      return grammar;
+      case IdenT:
+        do_equal = 1;
+        break;
 
-    case IdenT:
-      goto EQUAL;
+      case DotT:
+        pos = input_token(text, pos, &tok);
+        continue;
 
-    case DotT:
-      pos = next_token(text, pos, &tok);
-      goto START;
+      case ColonT:
+      case EqualT:
+        LOG_WARN("missing left-hand side of rule, or '.' from previous rule");
+        pos = input_flush(text, pos, &tok);
+        break;
 
-    case ColonT:
-    case EqualT:
-      LOG_WARN("missing left-hand side of rule, or '.' from previous rule");
-      goto FLUSH;
-
-    case StarT:
-      pos = next_token(text, pos, &tok);
-      if (tok.typ != IdenT) {
-        LOG_WARN("missing symbol after '*'");
-      } else {
-        grammar->start = lookup(grammar, tok.val, 0);
-        if (saw_start++ > 0) {
-          LOG_WARN("start symbol redefined");
+      case StarT:
+        pos = input_token(text, pos, &tok);
+        if (tok.typ != IdenT) {
+          LOG_WARN("missing symbol after '*'");
+        } else {
+          grammar->start = lookup(grammar, tok.val, 0);
+          if (saw_start++ > 0) {
+            LOG_WARN("start symbol redefined");
+          }
+          pos = input_token(text, pos, &tok);
         }
-        pos = next_token(text, pos, &tok);
+        pos = input_flush(text, pos, &tok);
+        break;
+
+      case BarT:
+        LOG_WARN("corrupt rule");
+        pos = input_flush(text, pos, &tok);
+        break;
+    }
+
+    if (do_equal) {
+      Symbol* lhs = lookup(grammar, tok.val, 0);
+      lhs->defined = 1;
+      if (grammar->start == 0) {
+        grammar->start = lhs;
       }
-      goto FLUSH;
+      pos = input_token(text, pos, &tok);
+      switch (tok.typ) {
+        case DotT:
+          sym_pos = sym_buf;
+          *sym_pos++ = lhs;
+          *sym_pos++ = 0;
+          symbol_insert_rule(lookup(grammar, lhs->name, 1), sym_buf, sym_pos);
+          break;
 
-    case BarT:
-      LOG_WARN("corrupt rule");
-      goto FLUSH;
-      break;
-  }
+        case ColonT:
+          sym_pos = sym_buf;
+          *sym_pos++ = lhs;
+          *sym_pos++ = 0;
+          for (pos = input_token(text, pos, &tok); tok.typ == IdenT; pos = input_token(text, pos, &tok)) {
+            symbol_insert_rule(lookup(grammar, tok.val, 1), sym_buf, sym_pos);
+          }
+          break;
 
-FLUSH:
-  while (tok.typ != DotT && tok.typ != EndT)
-    pos = next_token(text, pos, &tok);
-  goto END;
+        case EqualT:
+          do {
+            pos = input_token(text, pos, &tok);
+            for (sym_pos = sym_buf; tok.typ == IdenT && sym_pos < sym_buf + MAX_SYM; pos = input_token(text, pos, &tok)) {
+              *sym_pos++ = lookup(grammar, tok.val, 0);
+            }
+            if (sym_pos >= sym_buf + MAX_SYM) {
+              LOG_FATAL("rule too large, max is %u", MAX_SYM);
+              exit(1);
+            }
+            *sym_pos++ = 0;
+            symbol_insert_rule(lhs, sym_buf, sym_pos);
+          } while (tok.typ == BarT);
+          break;
 
-EQUAL:
-  lhs = lookup(grammar, tok.val, 0);
-  lhs->defined = 1;
-  if (grammar->start == 0) {
-    grammar->start = lhs;
-  }
-  pos = next_token(text, pos, &tok);
-  switch (tok.typ) {
-    case DotT:
-      sym_pos = sym_buf;
-      *sym_pos++ = lhs;
-      *sym_pos++ = 0;
-      symbol_insert_rule(lookup(grammar, lhs->name, 1), sym_buf, sym_pos);
-      break;
-
-    case ColonT:
-      sym_pos = sym_buf;
-      *sym_pos++ = lhs;
-      *sym_pos++ = 0;
-      for (pos = next_token(text, pos, &tok); tok.typ == IdenT; pos = next_token(text, pos, &tok)) {
-        symbol_insert_rule(lookup(grammar, tok.val, 1), sym_buf, sym_pos);
+        default:
+          LOG_WARN("missing '=' or ':'");
+          pos = input_flush(text, pos, &tok);
+          break;
       }
-      break;
+    }
 
-    case EqualT:
-      do {
-        pos = next_token(text, pos, &tok);
-        for (sym_pos = sym_buf; tok.typ == IdenT && sym_pos < sym_buf + MAX_SYM; pos = next_token(text, pos, &tok)) {
-          *sym_pos++ = lookup(grammar, tok.val, 0);
-        }
-        if (sym_pos >= sym_buf + MAX_SYM) {
-          LOG_FATAL("rule too large, max is %u", MAX_SYM);
-          exit(1);
-        }
-        *sym_pos++ = 0;
-        symbol_insert_rule(lhs, sym_buf, sym_pos);
-      } while (tok.typ == BarT);
+    if (tok.typ == EndT) {
+      LOG_WARN("missing '.'");
       break;
-
-    default:
-      LOG_WARN("missing '=' or ':'");
-      goto FLUSH;
-      break;
+    }
+    if (tok.typ == DotT) {
+      pos = input_token(text, pos, &tok);
+    }
   }
 
-END:
-  if (tok.typ == EndT) {
-    LOG_WARN("missing '.'");
-    return grammar;
-  }
-  if (tok.typ == DotT) {
-    pos = next_token(text, pos, &tok);
-  }
-  goto START;
-
-  return grammar; // unreachable
+  return grammar;
 }
 
 void grammar_destroy(Grammar* grammar) {
@@ -167,7 +165,13 @@ static Symbol* lookup(Grammar* grammar, Slice name, unsigned literal) {
   return symbol;
 }
 
-static unsigned next_token(Slice text, unsigned pos, Token* tok) {
+static unsigned input_flush(Slice text, unsigned pos, Token* tok) {
+  while (tok->typ != DotT && tok->typ != EndT)
+    pos = input_token(text, pos, tok);
+  return pos;
+}
+
+static unsigned input_token(Slice text, unsigned pos, Token* tok) {
   memset(tok, 0, sizeof(Token));
   do {
     // skip whitespace
