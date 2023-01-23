@@ -19,14 +19,18 @@
   * Avoid code generation / templates?  This forces to have a template for each
     target language we wish to support -- but see below.
   * Maybe generate the parsing tables in a "universal" format (JSON?).  This
-    forces to implement the "engine" that reads this information and uses it to
-    run the parser.
+    forces to implement, in each target language we wish to support, the
+    "driver" that reads this information and uses it to run the parser.
 
-* Add documentation
+* Add documentation.
 
 ### Probably...
 
 * Support some form of lexing.
-* Map the implementation to some form of reference document that describes the algorithm.
+* Map the implementation to some form of reference document that describes the
+  algorithm.  It should be possible to map each major routine to each part of
+  the algorithm.
 
 ### Maybe?
+
+* Not sure yet...
