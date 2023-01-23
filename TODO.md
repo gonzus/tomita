@@ -3,6 +3,7 @@
 ### Definitely!
 
 * Support comments in grammar files -- probably with `#`.
+* Add unit tests: *yes* **yes** ***yes***.
 * Make multi-step work possible.  This is hampered today by the fact that a
   `forest` needs a `parser` (and a `grammar`), and a `parser` needs a
   `grammar`.
@@ -26,7 +27,10 @@
 
 ### Probably...
 
-* Support some form of lexing.
+* Support some form of lexing.  The current behavior is:
+  * The tokens are defined as part of the grammar.
+  * The driver reads strings separated by white space and treats each string as
+    a symbol to be passed to the parser.
 * Map the implementation to some form of reference document that describes the
   algorithm.  It should be possible to map each major routine to each part of
   the algorithm.
