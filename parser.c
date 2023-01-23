@@ -15,8 +15,8 @@ static void state_make(struct State* S, unsigned char Final, unsigned new_Es, un
 static int state_add(Parser* parser, unsigned int Size, struct Item** List);
 
 Parser* parser_create(Grammar* grammar) {
-  Parser* parser = (Parser*) malloc(sizeof(Parser));
-  memset(parser, 0, sizeof(Parser));
+  Parser* parser = 0;
+  MALLOC(Parser, parser);
   parser->grammar = grammar;
   parser_build(parser);
   return parser;
@@ -44,6 +44,11 @@ void parser_destroy(Parser* parser) {
 }
 
 static void parser_build(Parser* parser) {
+  parser->SList = 0;
+  parser->STab = 0;
+  parser->Ss = 0;
+
+  // Create initial state
   Rule StartR = 0;
   MALLOC_N(Symbol*, StartR, 2);
   StartR[0] = parser->grammar->start;
@@ -53,9 +58,6 @@ static void parser_build(Parser* parser) {
   MALLOC(struct Item*, Its);
   Its[0] = item_make(0, StartR);
 
-  parser->SList = 0;
-  parser->STab = 0;
-  parser->Ss = 0;
   state_add(parser, 1, Its);
 
   struct Items* XTab = 0;
@@ -66,31 +68,28 @@ static void parser_build(Parser* parser) {
   unsigned Qs = 0;
 
   for (unsigned S = 0; S < parser->Ss; ++S) {
-    unsigned ERs;
-    unsigned RRs;
-    unsigned E;
-    unsigned Q;
-    unsigned R;
-    unsigned Xs = 0;
-    unsigned char Final;
     struct Items* QS = &parser->STab[S];
     if (QS->Size > QMax) {
       QMax = QS->Size;
       REALLOC(struct Item*, QBuf, QMax);
     }
-    for (Qs = 0; Qs < QS->Size; Qs++) {
+    for (Qs = 0; Qs < QS->Size; ++Qs) {
       QBuf[Qs] = REF(QS->List[Qs]);
     }
-    for (ERs = RRs = 0, Final = 0, Xs = 0, Q = 0; Q < Qs; ++Q) {
+    unsigned ERs = 0;
+    unsigned RRs = 0;
+    unsigned char Final = 0;
+    unsigned Xs = 0;
+    for (unsigned Q = 0; Q < Qs; ++Q) {
       struct Item* It = QBuf[Q];
       if (*It->Pos == 0) {
         if (It->LHS == 0) {
-          Final++;
+          ++Final;
         }
         else if (*It->RHS == 0) {
-          ERs++;
+          ++ERs;
         } else {
-          RRs++;
+          ++RRs;
         }
       } else {
         Symbol* Pre = *It->Pos++;
@@ -100,7 +99,7 @@ static void parser_build(Parser* parser) {
             QMax = Qs + Pre->rule_count;
             REALLOC(struct Item*, QBuf, QMax);
           }
-          for (R = 0; R < Pre->rule_count; ++R, ++Qs) {
+          for (unsigned R = 0; R < Pre->rule_count; ++R, ++Qs) {
             QBuf[Qs] = item_make(Pre, Pre->rules[R]);
           }
         }
@@ -109,7 +108,9 @@ static void parser_build(Parser* parser) {
       }
     }
     state_make(&parser->SList[S], Final, ERs, RRs, Xs);
-    for (E = R = 0, Q = 0; Q < Qs; ++Q) {
+    unsigned R = 0;
+    unsigned E = 0;
+    for (unsigned Q = 0; Q < Qs; ++Q) {
       struct Item* It = QBuf[Q];
       if (*It->Pos != 0 || It->LHS == 0) continue;
       if (*It->RHS == 0) {
@@ -120,12 +121,12 @@ static void parser_build(Parser* parser) {
         Rd->RHS = It->RHS;
       }
     }
-    for (unsigned X = 0; X < Xs; X++) {
+    for (unsigned X = 0; X < Xs; ++X) {
       struct Shift* Sh = &parser->SList[S].SList[X];
       Sh->X = XTab[X].Pre;
       Sh->Q = state_add(parser, XTab[X].Size, XTab[X].List);
     }
-    for (Q = 0; Q < Qs; ++Q) {
+    for (unsigned Q = 0; Q < Qs; ++Q) {
         UNREF(QBuf[Q]);
     }
   }
@@ -135,7 +136,7 @@ static void parser_build(Parser* parser) {
 }
 
 void parser_show(Parser* parser) {
-  for (unsigned S = 0; S < parser->Ss; S++) {
+  for (unsigned S = 0; S < parser->Ss; ++S) {
     printf("%d:\n", S);
     struct State* St = &parser->SList[S];
     if (St->Final) printf("\taccept\n");
@@ -162,7 +163,6 @@ void parser_show(Parser* parser) {
 static struct Item* item_make(Symbol* LHS, Rule RHS) {
   struct Item* It = 0;
   MALLOC(struct Item, It);
-  memset(It, 0, sizeof(struct Item));
   REF(It);
   It->LHS = LHS;
   It->Pos = It->RHS = RHS;
@@ -170,16 +170,15 @@ static struct Item* item_make(Symbol* LHS, Rule RHS) {
 }
 
 static int state_add(Parser* parser, unsigned int Size, struct Item** List) {
-  unsigned I;
-  unsigned S;
-  for (S = 0; S < parser->Ss; S++) {
+  for (unsigned S = 0; S < parser->Ss; ++S) {
     struct Items* IS = &parser->STab[S];
     if (IS->Size != Size) continue;
-    for (I = 0; I < IS->Size; I++) {
+    unsigned I = 0;
+    for (I = 0; I < IS->Size; ++I) {
       if (item_compare(IS->List[I], List[I]) != 0) break;
     }
     if (I >= IS->Size) {
-      for (I = 0; I < Size; I++) {
+      for (I = 0; I < Size; ++I) {
         UNREF(List[I]);
       }
       FREE(List);
@@ -198,7 +197,7 @@ static int state_add(Parser* parser, unsigned int Size, struct Item** List) {
 
 static struct Items* item_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, unsigned* XMax) {
   LOG_DEBUG("item_get, Pre=%p, XTab=%p, Xs=%u, XMax=%u", Pre, *XTab, *Xs, *XMax);
-  unsigned X;
+  unsigned X = 0;
   for (X = 0; X < *Xs; ++X) {
     if (Pre == (*XTab)[X].Pre) break;
   }
@@ -218,7 +217,6 @@ static struct Items* item_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, un
 static struct Item* item_clone(struct Item* A) {
   struct Item* B = 0;
   MALLOC(struct Item, B);
-  memset(B, 0, sizeof(struct Item));
   *B = *A;
 
   // careful with the clone's reference count!
@@ -229,16 +227,16 @@ static struct Item* item_clone(struct Item* A) {
 }
 
 static void item_add(struct Items* Q, struct Item* It) {
-  unsigned I;
-  for (I = 0; I < Q->Size; I++) {
+  unsigned I = 0;
+  for (I = 0; I < Q->Size; ++I) {
     unsigned Diff = item_compare(Q->List[I], It);
     if (Diff == 0) return;
     if (Diff > 0) break;
   }
-  if ((Q->Size&3) == 0) {
+  if ((Q->Size & 3) == 0) {
     REALLOC(struct Item*, Q->List, Q->Size + 4);
   }
-  for (unsigned J = Q->Size++; J > I; J--) {
+  for (unsigned J = Q->Size++; J > I; --J) {
     Q->List[J] = Q->List[J - 1];
   }
   Q->List[I] = item_clone(It);
@@ -276,9 +274,17 @@ static int item_compare(struct Item* A, struct Item* B) {
 
   Symbol** AP = 0;
   Symbol** BP = 0;
-  for (AP = A->RHS, BP = B->RHS; *AP != 0 && *BP != 0; AP++, BP++) {
+  for (AP = A->RHS, BP = B->RHS; *AP && *BP; ++AP, ++BP) {
     Diff = (*AP)->index - (*BP)->index;
     if (Diff != 0) break;
   }
-  return *AP == 0 ? (*BP == 0 ? 0 : -1) : *BP == 0 ? +1 : Diff;
+  if (*AP == 0 && *BP == 0) {
+    return 0;
+  } else if (*AP == 0) {
+    return -1;
+  } else if (*BP == 0) {
+    return +1;
+  }
+
+  return Diff;
 }
