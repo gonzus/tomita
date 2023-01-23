@@ -13,6 +13,7 @@ AFLAGS += -fsanitize=address   # cannot be used with thread
 CFLAGS += $(AFLAGS)
 CFLAGS += -c
 CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
+CFLAGS += -D_GNU_SOURCE -D_XOPEN_SOURCE -D_POSIX_C_SOURCE=200809L
 
 LDFLAGS += $(AFLAGS)
 

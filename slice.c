@@ -113,7 +113,7 @@ Slice slice_find_slice(Slice s, Slice t) {
         return slice_null;
     }
 
-#if defined(_GNU_SOURCE)
+#if 0 && defined(_GNU_SOURCE)
     const char* p = memmem(s.ptr, s.len, t.ptr, t.len);
     if (p) {
         return slice_from_memory(p, t.len);
