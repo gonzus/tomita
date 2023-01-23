@@ -66,8 +66,8 @@ static int EqualS(struct Subnode* A, struct Subnode* B);
 static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** sym);
 
 Forest* forest_create(Parser* parser) {
-  Forest* forest = (Forest*) malloc(sizeof(Forest));
-  memset(forest, 0, sizeof(Forest));
+  Forest* forest = 0;
+  MALLOC(Forest, forest);
   forest->parser = parser;
   return forest;
 }
@@ -90,11 +90,13 @@ static void forest_prepare(Forest* forest) {
   forest->PathTab = 0;
   forest->PathE = 0;
   forest->REDS = 0;
-  forest->RP = forest->RE = 0;
+  forest->RP = 0;
+  forest->RE = 0;
   forest->EREDS = 0;
-  forest->EP = forest->EE = 0;
-  forest->NodeP = forest->NodeE;
-  forest->VertP = forest->VertE;
+  forest->EP = 0;
+  forest->EE = 0;
+  forest->NodeP = 0;
+  forest->VertP = 0;
 }
 
 static void forest_cleanup(Forest* forest) {
@@ -102,20 +104,20 @@ static void forest_cleanup(Forest* forest) {
   forest->prepared = 0;
   LOG_INFO("cleaning up forest");
 
-  unsigned int N, S, W, Z; struct Vertex* V; struct ZNode* ZN; struct Node* Nd;
-  for (N = 0; N < forest->NodeE; N++) {
-    Nd = &forest->NodeTab[N];
-    for (S = 0; S < Nd->Subs; S++) {
+  for (unsigned N = 0; N < forest->NodeE; ++N) {
+    struct Node* Nd = &forest->NodeTab[N];
+    for (unsigned S = 0; S < Nd->Subs; ++S) {
       FreeSub(Nd->Sub[S]);
     }
     FREE(Nd->Sub);
   }
   FREE(forest->NodeTab);
-  forest->NodeE = forest->NodeP = 0;
-  for (W = 0; W < forest->VertE; W++) {
-    V = &forest->VertTab[W];
-    for (Z = 0; Z < V->Size; Z++) {
-      ZN = V->List[Z];
+  forest->NodeE = 0;
+  forest->NodeP = 0;
+  for (unsigned W = 0; W < forest->VertE; ++W) {
+    struct Vertex* V = &forest->VertTab[W];
+    for (unsigned Z = 0; Z < V->Size; ++Z) {
+      struct ZNode*  ZN = V->List[Z];
       FREE(ZN->List);
       FREE(ZN);
     }
@@ -130,26 +132,22 @@ static void forest_cleanup(Forest* forest) {
 }
 
 struct Node* forest_parse(Forest* forest, Slice text) {
-  unsigned pos = 0;
-  Symbol* Word;
-  unsigned C;
-  unsigned VP;
-  unsigned N;
-  unsigned W;
   forest_cleanup(forest);
   forest_prepare(forest);
   AddQ(forest, &forest->parser->SList[0]);
+  unsigned pos = 0;
   while (1) {
     /* REDUCE */
     while (forest->EP < forest->EE || forest->RP < forest->RE) {
-      for (; forest->RP < forest->RE; forest->RP++) {
+      for (; forest->RP < forest->RE; ++forest->RP) {
         Reduce1(forest, forest->REDS[forest->RP].Z, forest->REDS[forest->RP].LHS, forest->REDS[forest->RP].RHS);
       }
-      for (; forest->EP < forest->EE; forest->EP++) {
+      for (; forest->EP < forest->EE; ++forest->EP) {
         AddN(forest, AddSub(forest, forest->EREDS[forest->EP].LHS, 0), forest->EREDS[forest->EP].W);
       }
     }
     /* SHIFT */
+    Symbol* Word = 0;
     pos = next_symbol(forest, text, pos, &Word);
     if (Word == 0) break;
     // printf(" %.*s", Word->name.len, Word->name.ptr);
@@ -159,20 +157,21 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     P->Cur = AddSub(forest, Word, 0);
     P->Next = 0;
     P->Links = 0;
-    VP = forest->VertP, forest->VertP = forest->VertE; forest->NodeP = forest->NodeE;
+    unsigned VP = forest->VertP;
+    forest->VertP = forest->VertE;
+    forest->NodeP = forest->NodeE;
     if (Word->rule_count == 0) { /* Treat the word as a new word. */
-      Symbol* S;
-      for (S = forest->parser->grammar->first; S != 0; S = S->tail) {
+      for (Symbol* S = forest->parser->grammar->first; S != 0; S = S->tail) {
         if (S->rule_count > 0) continue;
-        N = AddSub(forest, S, P);
-        for (W = VP; W < forest->VertP; W++) {
+        unsigned N = AddSub(forest, S, P);
+        for (unsigned W = VP; W < forest->VertP; ++W) {
           AddN(forest, N, W);
         }
       }
     } else {
-      for (C = 0; C < Word->rule_count; C++) {
-        N = AddSub(forest, *Word->rules[C], P);
-        for (W = VP; W < forest->VertP; W++) {
+      for (unsigned C = 0; C < Word->rule_count; ++C) {
+        unsigned N = AddSub(forest, *Word->rules[C], P);
+        for (unsigned W = VP; W < forest->VertP; ++W) {
           AddN(forest, N, W);
         }
       }
@@ -180,7 +179,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
   }
   /* ACCEPT */
   // printf("\n");
-  for (W = forest->VertP; W < forest->VertE; W++) {
+  for (unsigned W = forest->VertP; W < forest->VertE; ++W) {
     struct Vertex* V = &forest->VertTab[W];
     if (V->Val->Final) {
       return &forest->NodeTab[V->List[0]->Val];
@@ -199,55 +198,53 @@ static void FreeSub(struct Subnode* A) {
 }
 
 static unsigned AddQ(Forest* forest, struct State* S) {
-  unsigned V;
-  struct Vertex* W;
-  unsigned int E;
-  for (V = forest->VertP; V < forest->VertE; V++) {
-    W = &forest->VertTab[V];
+  for (unsigned V = forest->VertP; V < forest->VertE; ++V) {
+    struct Vertex* W = &forest->VertTab[V];
     if (W->Val == S) return V;
   }
   if ((forest->VertE & 7) == 0) {
     REALLOC(struct Vertex, forest->VertTab, forest->VertE + 8);
   }
-  W = &forest->VertTab[forest->VertE];
-  W->Val = S, W->Start = forest->Position, W->Size = 0, W->List = 0;
-  for (E = 0; E < S->Es; E++) {
+  struct Vertex* W = &forest->VertTab[forest->VertE];
+  W->Val = S;
+  W->Start = forest->Position;
+  W->Size = 0;
+  W->List = 0;
+  for (unsigned E = 0; E < S->Es; ++E) {
     AddERed(forest, forest->VertE, S->EList[E]);
   }
   return forest->VertE++;
 }
 
 static void Reduce1(Forest* forest, struct ZNode* Z, Symbol* L, Rule R) {
-  unsigned PE, X; struct Path* PP; struct Subnode* P; struct Vertex* V;
-  unsigned PathP;
   forest->PathTab = 0;
-  forest->PathE = PathP = 0;
+  forest->PathE = 0;
+  unsigned PathP = 0;
   AddLink(forest, Z, 0);
-  for (R++; *R != 0; R++) {
-    for (PE = forest->PathE; PathP < PE; PathP++) {
-      PP = &forest->PathTab[PathP];
+  for (++R; *R != 0; ++R) {
+    for (unsigned PE = forest->PathE; PathP < PE; ++PathP) {
+      struct Path* PP = &forest->PathTab[PathP];
+      struct Subnode* P = PP->P;
       Z = PP->Z;
-      P = PP->P;
-      for (unsigned W = 0; W < Z->Size; W++) {
-        V = &forest->VertTab[Z->List[W]];
-        for (X = 0; X < V->Size; X++) {
+      for (unsigned W = 0; W < Z->Size; ++W) {
+        struct Vertex* V = &forest->VertTab[Z->List[W]];
+        for (unsigned X = 0; X < V->Size; ++X) {
           AddLink(forest, V->List[X], P);
         }
       }
     }
   }
-  for (; PathP < forest->PathE; PathP++) {
-    unsigned N;
-    PP = &forest->PathTab[PathP];
+  for (; PathP < forest->PathE; ++PathP) {
+    struct Path* PP = &forest->PathTab[PathP];
+    struct Subnode* P = PP->P;
     Z = PP->Z;
-    P = PP->P;
-    N = AddSub(forest, L, P);
-    for (unsigned W = 0; W < Z->Size; W++) {
+    unsigned N = AddSub(forest, L, P);
+    for (unsigned W = 0; W < Z->Size; ++W) {
       AddN(forest, N, Z->List[W]);
     }
   }
   FREE(forest->PathTab);
-  PathP = forest->PathE = 0;
+  forest->PathE = 0;
 }
 
 static void AddN(Forest* forest, unsigned N, unsigned W) {
@@ -267,7 +264,7 @@ static void AddN(Forest* forest, unsigned N, unsigned W) {
   unsigned pos = AddQ(forest, S);
   W1 = &forest->VertTab[pos];
 #endif
-  for (Z = 0; Z < W1->Size; Z++) {
+  for (Z = 0; Z < W1->Size; ++Z) {
     Z1 = W1->List[Z];
     if (Z1->Val == N) break;
   }
@@ -284,15 +281,15 @@ static void AddN(Forest* forest, unsigned N, unsigned W) {
     Z1->Val = N;
     Z1->Size = 0;
     Z1->List = 0;
-    for (R = 0; R < S->Rs; R++) {
+    for (R = 0; R < S->Rs; ++R) {
       Rd = &S->RList[R], AddRed(forest, Z1, Rd->LHS, Rd->RHS);
     }
   }
-  for (I = 0; I < Z1->Size; I++) {
+  for (I = 0; I < Z1->Size; ++I) {
     if (Z1->List[I] == W) break;
   }
   if (I >= Z1->Size) {
-    if ((Z1->Size&3) == 0) {
+    if ((Z1->Size & 3) == 0) {
       REALLOC(unsigned, Z1->List, Z1->Size + 4);
     }
     I = Z1->Size++;
@@ -303,7 +300,7 @@ static void AddN(Forest* forest, unsigned N, unsigned W) {
 static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P) {
   unsigned N, S, Size; struct Node* Nd;
   Size = L->literal? 1: (P == 0)? 0: P->Size;
-  for (N = forest->NodeP; N < forest->NodeE; N++) {
+  for (N = forest->NodeP; N < forest->NodeE; ++N) {
     Nd = &forest->NodeTab[N];
     if (Nd->Sym == L && Nd->Size == Size) break;
   }
@@ -322,7 +319,7 @@ static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P) {
     Nd->Sub = 0;
   }
   if (!L->literal) {
-    for (S = 0; S < Nd->Subs; S++) {
+    for (S = 0; S < Nd->Subs; ++S) {
       if (EqualS(Nd->Sub[S], P)) break;
     }
     if (S >= Nd->Subs) {
@@ -340,13 +337,13 @@ static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P) {
 }
 
 static void AddRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Rule RHS) {
-  if ((forest->RE&7) == 0) {
+  if ((forest->RE & 7) == 0) {
     REALLOC(struct RRed, forest->REDS, forest->RE + 8);
   }
   forest->REDS[forest->RE].Z = Z;
   forest->REDS[forest->RE].LHS = LHS;
   forest->REDS[forest->RE].RHS = RHS;
-  forest->RE++;
+  ++forest->RE;
 }
 
 static void AddERed(Forest* forest, unsigned W, Symbol* LHS) {
@@ -355,7 +352,7 @@ static void AddERed(Forest* forest, unsigned W, Symbol* LHS) {
   }
   forest->EREDS[forest->EE].W = W;
   forest->EREDS[forest->EE].LHS = LHS;
-  forest->EE++;
+  ++forest->EE;
 }
 
 static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
@@ -382,9 +379,8 @@ static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
 }
 
 static struct State* Next(Forest* forest, struct State* Q, Symbol* Sym) {
-  unsigned int S; struct Shift* Sh;
-  for (S = 0; S < Q->Ss; S++) {
-    Sh = &Q->SList[S];
+  for (unsigned S = 0; S < Q->Ss; ++S) {
+    struct Shift* Sh = &Q->SList[S];
     if (Sh->X == Sym) return &forest->parser->SList[Sh->Q];
   }
   return 0;
@@ -393,7 +389,7 @@ static struct State* Next(Forest* forest, struct State* Q, Symbol* Sym) {
 static int EqualS(struct Subnode* A, struct Subnode* B) {
   for (; A != 0 && B != 0; A = A->Next, B = B->Next)
     if (A->Size != B->Size || A->Cur != B->Cur) return 0;
-  return A == B;
+  return A == B; // NOTE: why?
 }
 
 static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** sym) {
@@ -435,16 +431,12 @@ void forest_show_node(Forest* forest, struct Node* node) {
 }
 
 void forest_show(Forest* forest) {
-  unsigned N;
-  unsigned S;
-  struct Node* Nd;
-  struct Subnode* P;
-  for (N = 0; N < forest->NodeE; N++) {
-    Nd = &forest->NodeTab[N];
+  for (unsigned N = 0; N < forest->NodeE; ++N) {
+    struct Node* Nd = &forest->NodeTab[N];
     if (Nd->Sym->literal) continue;
     forest_show_node(forest, Nd);
     if (Nd->Subs > 0) {
-      P = Nd->Sub[0];
+      struct Subnode* P = Nd->Sub[0];
       // we were not checking P in the next if
       // fix by gonzo
       if (P && forest->NodeTab[P->Cur].Sym->literal) {
@@ -453,11 +445,11 @@ void forest_show(Forest* forest) {
         printf(" =");
       }
     }
-    for (S = 0; S < Nd->Subs; S++) {
+    for (unsigned S = 0; S < Nd->Subs; ++S) {
       if (S > 0) {
         printf(" |");
       }
-      for (P = Nd->Sub[S]; P != 0; P = P->Next) {
+      for (struct Subnode* P = Nd->Sub[S]; P != 0; P = P->Next) {
         struct Node* node = &forest->NodeTab[P->Cur];
         forest_show_node(forest, node);
       }
@@ -472,25 +464,22 @@ static void show_vertex(Forest* forest, unsigned W) {
 }
 
 void forest_show_stack(Forest* forest) {
-  unsigned int W, W1, Z;
-  struct Vertex* V;
-  struct ZNode* N;
-  for (W = 0; W < forest->VertE; W++) {
-    V = &forest->VertTab[W];
+  for (unsigned W = 0; W < forest->VertE; ++W) {
     show_vertex(forest, W);
+    struct Vertex* V = &forest->VertTab[W];
     if (V->Size > 0) {
       printf(" <=\t");
     } else {
       putchar('\n');
     }
-    for (Z = 0; Z < V->Size; Z++) {
+    for (unsigned Z = 0; Z < V->Size; ++Z) {
       if (Z > 0) {
         printf("\t\t");
       }
-      N = V->List[Z];
+      struct ZNode* N = V->List[Z];
       struct Node* node = &forest->NodeTab[N->Val];
       printf(" ["), forest_show_node(forest, node), printf(" ] <=");
-      for (W1 = 0; W1 < N->Size; W1++) {
+      for (unsigned W1 = 0; W1 < N->Size; ++W1) {
         show_vertex(forest, N->List[W1]);
       }
       putchar('\n');
