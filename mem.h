@@ -8,7 +8,7 @@
 #define MALLOC_S(T, v, s) \
   do { \
     assert(v == 0); \
-    if (s) { \
+    if ((s) > 0) { \
       v = (T) malloc(s); \
       assert(v != 0); \
       memset(v, 0, s); \
@@ -33,7 +33,7 @@
 // v must be declared already
 #define REALLOC_S(T, v, s) \
   do { \
-    if (s) { \
+    if ((s) > 0) { \
       T tmp = (T) realloc(v, s); \
       assert(tmp != 0); \
       v = tmp; \
@@ -50,13 +50,14 @@
 // v: name of variable
 #define FREE(v) \
   do { \
-    if (v) { \
+    if ((v) != 0) { \
       free(v); \
       v = 0; \
     } \
   } while (0)
 
-#define REF(x) ((x) ? ++((x)->Links) : 0, x)
+#define REF(x) ((x) ? (++((x)->Links), x)  : 0)
+
 #define UNREF(x) \
   if (x) { \
     if ((x)->Links) {\
