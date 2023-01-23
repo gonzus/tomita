@@ -1,4 +1,4 @@
-## WHAT
+## What
 
 This is a repo containing public domain code which was originally downloaded
 from
