@@ -7,7 +7,8 @@
 
 #define MAX_BUF (1024*1024)
 
-static char* opt_grammar = 0;
+static char* opt_grammar_file = 0;
+static int opt_grammar = 0;
 static int opt_stack = 0;
 static int opt_table = 0;
 
@@ -52,21 +53,22 @@ static void process_path(Forest* forest, const char* path) {
 
 static void show_usage(const char* prog) {
   printf(
-      "Usage: %s -gsc? data ...\n"
-      "    -g ...... use this grammar file (required)\n"
-      "    -c ...... display parsing table\n"
-      "    -s ...... display parsing stack\n"
-      "    -? ...... print this help\n",
+      "Usage: %s -f file [-gsc] file ...\n"
+      "   -f  use this grammar file (required)\n"
+      "   -g  display input grammar\n"
+      "   -c  display parsing table\n"
+      "   -s  display parsing stack\n"
+      "   -?  print this help\n",
       prog
     );
 }
 
 int main(int argc, char **argv) {
   int c;
-  while ((c = getopt(argc, argv, "csg:?")) != -1) {
+  while ((c = getopt(argc, argv, "gcsf:?")) != -1) {
     switch (c) {
       case 'g':
-        opt_grammar = optarg;
+        opt_grammar = 1;
         break;
       case 'c':
         opt_table = 1;
@@ -74,13 +76,16 @@ int main(int argc, char **argv) {
       case 's':
         opt_stack = 1;
         break;
+      case 'f':
+        opt_grammar_file = optarg;
+        break;
       case '?':
       default:
         show_usage(argv[0]);
         return 0;
     }
   }
-  if (!opt_grammar) {
+  if (!opt_grammar_file) {
     show_usage(argv[0]);
     return 0;
   }
@@ -92,10 +97,11 @@ int main(int argc, char **argv) {
   Forest* forest = 0;
   do {
     char buf[MAX_BUF];
-    unsigned len = slurp_file(opt_grammar, buf, MAX_BUF);
+    unsigned len = slurp_file(opt_grammar_file, buf, MAX_BUF);
     if (len <= 0) break;
-    LOG_INFO("read %u bytes from [%s]", len, opt_grammar);
-    Slice text_grammar = slice_from_memory(buf, len);
+    LOG_INFO("read %u bytes from [%s]", len, opt_grammar_file);
+    Slice raw = slice_from_memory(buf, len);
+    Slice text_grammar = slice_trim(raw);
 
     grammar = grammar_create(text_grammar);
     if (!grammar) break;
@@ -105,6 +111,9 @@ int main(int argc, char **argv) {
     if (errors) {
       LOG_INFO("grammar has %u errors", errors);
       break;
+    }
+    if (opt_grammar) {
+      printf("%.*s\n", text_grammar.len, text_grammar.ptr);
     }
 
     parser = parser_create(grammar);
