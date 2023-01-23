@@ -5,8 +5,8 @@
 #include "symtab.h"
 
 SymTab* symtab_create(void) {
-  SymTab* symtab = (SymTab*) malloc(sizeof(SymTab));
-  memset(symtab, 0, sizeof(SymTab));
+  SymTab* symtab = 0;
+  MALLOC(SymTab, symtab);
   return symtab;
 }
 

@@ -8,8 +8,8 @@
 static unsigned COUNTER = 0;
 
 Symbol* symbol_create(Slice name, unsigned literal) {
-  Symbol* symbol = (Symbol*) malloc(sizeof(Symbol));
-  memset(symbol, 0, sizeof(Symbol));
+  Symbol* symbol = 0;
+  MALLOC(Symbol, symbol);
   symbol->name = name;
   symbol->literal = literal;
   symbol->index = COUNTER++;
@@ -32,7 +32,7 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {
     unsigned diff = 0;
     Symbol** A = 0;
     Symbol** B = 0;
-    for (diff = 0, A = SymBuf, B = symbol->rules[k]; *A != 0 && *B != 0; A++, B++) {
+    for (diff = 0, A = SymBuf, B = symbol->rules[k]; *A && *B; ++A, ++B) {
       diff = (*A)->index - (*B)->index;
       if (diff != 0) break;
     }
@@ -45,14 +45,14 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {
   }
   if ((symbol->rule_count & 7) == 0)
     REALLOC(Rule, symbol->rules, symbol->rule_count + 8);
-  for (unsigned j = symbol->rule_count++; j > k; j--) {
+  for (unsigned j = symbol->rule_count++; j > k; --j) {
     symbol->rules[j] = symbol->rules[j - 1];
   }
 
   Rule rule = 0;
   MALLOC_N(Symbol*, rule, SymP - SymBuf);
   symbol->rules[k] = rule;
-  for (k = 0; k < (SymP - SymBuf); k++) {
+  for (k = 0; k < (SymP - SymBuf); ++k) {
     rule[k] = SymBuf[k];
     if (!rule[k]) continue;
     LOG_DEBUG("  symbol #%u -> %p [%.*s]", k, (void*) rule[k], rule[k]->name.len, rule[k]->name.ptr);
