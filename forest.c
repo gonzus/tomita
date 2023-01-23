@@ -136,7 +136,6 @@ struct Node* forest_parse(Forest* forest, Slice text) {
   unsigned VP;
   unsigned N;
   unsigned W;
-  struct Subnode* P;
   forest_cleanup(forest);
   forest_prepare(forest);
   AddQ(forest, &forest->parser->SList[0]);
@@ -154,7 +153,8 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     pos = next_symbol(forest, text, pos, &Word);
     if (Word == 0) break;
     // printf(" %.*s", Word->name.len, Word->name.ptr);
-    P = Allocate(sizeof(struct Subnode));
+    struct Subnode* P = 0;
+    MALLOC(struct Subnode, P);
     P->Size = 1;
     P->Cur = AddSub(forest, Word, 0);
     P->Next = 0;
@@ -207,7 +207,7 @@ static unsigned AddQ(Forest* forest, struct State* S) {
     if (W->Val == S) return V;
   }
   if ((forest->VertE & 7) == 0) {
-    forest->VertTab = Reallocate(forest->VertTab, (forest->VertE + 8)*sizeof(struct Vertex));
+    REALLOC(struct Vertex, forest->VertTab, forest->VertE + 8);
   }
   W = &forest->VertTab[forest->VertE];
   W->Val = S, W->Start = forest->Position, W->Size = 0, W->List = 0;
@@ -274,10 +274,13 @@ static void AddN(Forest* forest, unsigned N, unsigned W) {
   if (Z >= W1->Size) {
     struct Reduce* Rd;
     unsigned int R;
-    if ((W1->Size & 3) == 0)
-      W1->List = Reallocate(W1->List, (W1->Size + 4) * sizeof(struct ZNode*));
+    if ((W1->Size & 3) == 0) {
+      REALLOC(struct ZNode*, W1->List, W1->Size + 4);
+    }
     Z = W1->Size++;
-    W1->List[Z] = Z1 = Allocate(sizeof *Z1);
+    Z1 = 0;
+    MALLOC(struct ZNode, Z1);
+    W1->List[Z] = Z1;
     Z1->Val = N;
     Z1->Size = 0;
     Z1->List = 0;
@@ -290,7 +293,7 @@ static void AddN(Forest* forest, unsigned N, unsigned W) {
   }
   if (I >= Z1->Size) {
     if ((Z1->Size&3) == 0) {
-      Z1->List = Reallocate(Z1->List, (Z1->Size + 4)*sizeof *Z1->List);
+      REALLOC(unsigned, Z1->List, Z1->Size + 4);
     }
     I = Z1->Size++;
     Z1->List[I] = W;
@@ -306,7 +309,7 @@ static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P) {
   }
   if (N >= forest->NodeE) {
     if ((forest->NodeE & 7) == 0) {
-      forest->NodeTab = Reallocate(forest->NodeTab, (forest->NodeE + 8) * sizeof(struct Node));
+      REALLOC(struct Node, forest->NodeTab, forest->NodeE + 8);
     }
     N = forest->NodeE++;
     Nd = &forest->NodeTab[N];
@@ -324,7 +327,7 @@ static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P) {
     }
     if (S >= Nd->Subs) {
       if ((Nd->Subs & 3) == 0) {
-        Nd->Sub = Reallocate(Nd->Sub, (Nd->Subs + 4) * sizeof(struct Subnode*));
+        REALLOC(struct Subnode*, Nd->Sub, Nd->Subs + 4);
       }
       // we are adding a reference to this Subnode, increment its reference count
       // fix by gonzo
@@ -339,7 +342,7 @@ static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P) {
 
 static void AddRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Rule RHS) {
   if ((forest->RE&7) == 0) {
-    forest->REDS = Reallocate(forest->REDS, (forest->RE + 8)*sizeof *forest->REDS);
+    REALLOC(struct RRed, forest->REDS, forest->RE + 8);
   }
   forest->REDS[forest->RE].Z = Z;
   forest->REDS[forest->RE].LHS = LHS;
@@ -349,7 +352,7 @@ static void AddRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Rule RHS) {
 
 static void AddERed(Forest* forest, unsigned W, Symbol* LHS) {
   if ((forest->EE & 7) == 0) {
-    forest->EREDS = Reallocate(forest->EREDS, (forest->EE + 8)*sizeof *forest->EREDS);
+    REALLOC(struct ERed, forest->EREDS, forest->EE + 8);
   }
   forest->EREDS[forest->EE].W = W;
   forest->EREDS[forest->EE].LHS = LHS;
@@ -360,12 +363,13 @@ static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
   struct Path* PP;
   unsigned N = Z->Val;
   struct Node* Nd = &forest->NodeTab[N];
-  struct Subnode* NewP = Allocate(sizeof *NewP);
+  struct Subnode* NewP = 0;
+  MALLOC(struct Subnode, NewP);
   NewP->Size = Nd->Size; if (P != 0) NewP->Size += P->Size, P->Links++;
   NewP->Cur = N, NewP->Next = P, NewP->Links = 0;
   P = NewP;
   if ((forest->PathE & 7) == 0) {
-    forest->PathTab = Reallocate(forest->PathTab, (forest->PathE + 8) * sizeof *forest->PathTab);
+    REALLOC(struct Path, forest->PathTab, forest->PathE + 8);
   }
   PP = &forest->PathTab[forest->PathE++];
   PP->Z = Z;

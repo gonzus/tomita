@@ -46,11 +46,13 @@ void parser_destroy(Parser* parser) {
 }
 
 static void parser_build(Parser* parser) {
-  Rule StartR = Allocate(2 * sizeof(Symbol*));
+  Rule StartR = 0;
+  MALLOC_N(Symbol*, StartR, 2);
   StartR[0] = parser->grammar->start;
   StartR[1] = 0;
 
-  struct Item** Its = Allocate(sizeof(struct Item*));
+  struct Item** Its = 0;
+  MALLOC(struct Item*, Its);
   Its[0] = item_make(0, StartR);
 
   parser->SList = 0;
@@ -76,7 +78,7 @@ static void parser_build(Parser* parser) {
     struct Items* QS = &parser->STab[S];
     if (QS->Size > QMax) {
       QMax = QS->Size;
-      QBuf = Reallocate(QBuf, QMax * sizeof(struct Item*));
+      REALLOC(struct Item*, QBuf, QMax);
     }
     for (Qs = 0; Qs < QS->Size; Qs++) {
       QBuf[Qs] = item_ref(QS->List[Qs]);
@@ -98,7 +100,7 @@ static void parser_build(Parser* parser) {
         if (IS->Size == 0) {
           if ((Qs + Pre->rule_count) > QMax) {
             QMax = Qs + Pre->rule_count;
-            QBuf = Reallocate(QBuf, QMax * sizeof(struct Item*));
+            REALLOC(struct Item*, QBuf, QMax);
           }
           for (R = 0; R < Pre->rule_count; ++R, ++Qs) {
             QBuf[Qs] = item_make(Pre, Pre->rules[R]);
@@ -160,7 +162,8 @@ void parser_show(Parser* parser) {
 }
 
 static struct Item* item_make(Symbol* LHS, Rule RHS) {
-  struct Item* It = Allocate(sizeof(struct Item));
+  struct Item* It = 0;
+  MALLOC(struct Item, It);
   memset(It, 0, sizeof(struct Item));
   item_ref(It);
   It->LHS = LHS;
@@ -186,8 +189,8 @@ static int state_add(Parser* parser, unsigned int Size, struct Item** List) {
     }
   }
   if ((parser->Ss & 7) == 0) {
-    parser->STab = Reallocate(parser->STab, (parser->Ss + 8) * sizeof *parser->STab);
-    parser->SList = Reallocate(parser->SList, (parser->Ss + 8) * sizeof *parser->SList);
+    REALLOC(struct Items, parser->STab, parser->Ss + 8);
+    REALLOC(struct State, parser->SList, parser->Ss + 8);
   }
   parser->STab[parser->Ss].Pre = 0;
   parser->STab[parser->Ss].Size = Size;
@@ -204,7 +207,7 @@ static struct Items* item_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, un
   if (X >= *Xs) {
     if (*Xs >= *XMax) {
       *XMax += 8;
-      *XTab = Reallocate(*XTab, *XMax * sizeof **XTab);
+      REALLOC(struct Items, *XTab, *XMax);
     }
     X = (*Xs)++;
     (*XTab)[X].Pre = Pre;
@@ -215,7 +218,8 @@ static struct Items* item_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, un
 }
 
 static struct Item* item_clone(struct Item* A) {
-  struct Item* B = Allocate(sizeof(struct Item));
+  struct Item* B = 0;
+  MALLOC(struct Item, B);
   memset(B, 0, sizeof(struct Item));
   *B = *A;
 
@@ -234,7 +238,7 @@ static void item_add(struct Items* Q, struct Item* It) {
     if (Diff > 0) break;
   }
   if ((Q->Size&3) == 0) {
-    Q->List = Reallocate(Q->List, (Q->Size + 4) * sizeof(struct Item*));
+    REALLOC(struct Item*, Q->List, Q->Size + 4);
   }
   for (unsigned J = Q->Size++; J > I; J--) {
     Q->List[J] = Q->List[J - 1];
@@ -244,9 +248,15 @@ static void item_add(struct Items* Q, struct Item* It) {
 
 static void state_make(struct State* S, unsigned char Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss) {
   S->Final = Final;
-  S->Es = new_Es, S->EList = new_Es == 0 ? 0 : Allocate(new_Es * sizeof(Symbol*));
-  S->Rs = new_Rs, S->RList = new_Rs == 0 ? 0 : Allocate(new_Rs * sizeof(struct Reduce));
-  S->Ss = new_Ss, S->SList = new_Ss == 0 ? 0 : Allocate(new_Ss * sizeof(struct Shift));
+  S->Es = new_Es;
+  S->Rs = new_Rs;
+  S->Ss = new_Ss;
+  S->EList = 0;
+  S->RList = 0;
+  S->SList = 0;
+  MALLOC_N(Symbol*      , S->EList, new_Es);
+  MALLOC_N(struct Reduce, S->RList, new_Rs);
+  MALLOC_N(struct Shift , S->SList, new_Ss);
 }
 
 static int item_compare(struct Item* A, struct Item* B) {
