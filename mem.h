@@ -55,3 +55,15 @@
       v = 0; \
     } \
   } while (0)
+
+#define REF(x) ((x) ? ++((x)->Links) : 0, x)
+#define UNREF(x) \
+  if (x) { \
+    if ((x)->Links) {\
+      --((x)->Links); \
+      if (!(x)->Links) {\
+        FREE(x); \
+        x = 0; \
+      } \
+    } \
+  }

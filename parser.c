@@ -13,8 +13,6 @@ static int item_compare(struct Item* A, struct Item* B);
 
 static void state_make(struct State* S, unsigned char Final, unsigned new_Es, unsigned new_Rs, unsigned new_Ss);
 static int state_add(Parser* parser, unsigned int Size, struct Item** List);
-static struct Item* item_ref(struct Item* item);
-static void item_unref(struct Item* item);
 
 Parser* parser_create(Grammar* grammar) {
   Parser* parser = (Parser*) malloc(sizeof(Parser));
@@ -28,7 +26,7 @@ void parser_destroy(Parser* parser) {
   if (parser->STab) {
     for (unsigned j = 0; j < parser->Ss; ++j) {
       for (unsigned k = 0; k < parser->STab[j].Size; ++k) {
-        item_unref(parser->STab[j].List[k]);
+        UNREF(parser->STab[j].List[k]);
       }
       FREE(parser->STab[j].List);
     }
@@ -81,7 +79,7 @@ static void parser_build(Parser* parser) {
       REALLOC(struct Item*, QBuf, QMax);
     }
     for (Qs = 0; Qs < QS->Size; Qs++) {
-      QBuf[Qs] = item_ref(QS->List[Qs]);
+      QBuf[Qs] = REF(QS->List[Qs]);
     }
     for (ERs = RRs = 0, Final = 0, Xs = 0, Q = 0; Q < Qs; ++Q) {
       struct Item* It = QBuf[Q];
@@ -128,7 +126,7 @@ static void parser_build(Parser* parser) {
       Sh->Q = state_add(parser, XTab[X].Size, XTab[X].List);
     }
     for (Q = 0; Q < Qs; ++Q) {
-        item_unref(QBuf[Q]);
+        UNREF(QBuf[Q]);
     }
   }
   FREE(XTab);
@@ -165,7 +163,7 @@ static struct Item* item_make(Symbol* LHS, Rule RHS) {
   struct Item* It = 0;
   MALLOC(struct Item, It);
   memset(It, 0, sizeof(struct Item));
-  item_ref(It);
+  REF(It);
   It->LHS = LHS;
   It->Pos = It->RHS = RHS;
   return It;
@@ -182,7 +180,7 @@ static int state_add(Parser* parser, unsigned int Size, struct Item** List) {
     }
     if (I >= IS->Size) {
       for (I = 0; I < Size; I++) {
-        item_unref(List[I]);
+        UNREF(List[I]);
       }
       FREE(List);
       return S;
@@ -225,7 +223,7 @@ static struct Item* item_clone(struct Item* A) {
 
   // careful with the clone's reference count!
   B->Links = 0;
-  item_ref(B);
+  REF(B);
 
   return B;
 }
@@ -283,16 +281,4 @@ static int item_compare(struct Item* A, struct Item* B) {
     if (Diff != 0) break;
   }
   return *AP == 0 ? (*BP == 0 ? 0 : -1) : *BP == 0 ? +1 : Diff;
-}
-
-static struct Item* item_ref(struct Item* item) {
-  ++item->Links;
-  return item;
-}
-
-static void item_unref(struct Item* item) {
-  if (!item->Links) return;
-  --item->Links;
-  if (item->Links) return;
-  FREE(item);
 }

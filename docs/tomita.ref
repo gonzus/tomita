@@ -233,30 +233,30 @@ cyclic reduction S -> S.
 
 The result of parsing this will be a CYCLIC parse forest (rooted at S_06):
 
-             S_00 = S_00 | .
+             S_0_0 = S_0_0 | .
 
-             x_01: "a".
-             T_01 = x_01.
-             S_01 = S_01 | S_00 T_01.
+             x_0_1: "a".
+             T_0_1 = x_0_1.
+             S_0_1 = S_0_1 | S_0_0 T_0_1.
 
-             a_12: "(".
-             S_22 = S_22 | .
+             a_1_2: "(".
+             S_2_2 = S_2_2 | .
 
-             x_23: "b".
-             T_23 = x_23.
-             S_23 = S_23 | S_22 T_23.
+             x_2_3: "b".
+             T_2_3 = x_2_3.
+             S_2_3 = S_2_3 | S_2_2 T_2_3.
 
-             x_34: "c".
-             T_34 = x_34.
-             S_24 = S_24 | S_23 T_34.
+             x_3_4: "c".
+             T_3_4 = x_3_4.
+             S_2_4 = S_2_4 | S_2_3 T_3_4.
 
-             b_45: ")".
-             T_15 = a_12 S_24 b_45.
-             S_05 = S_05 | S_01 T_15.
+             b_4_5: ")".
+             T_1_5 = a_1_2 S_2_4 b_4_5.
+             S_0_5 = S_0_5 | S_0_1 T_1_5.
 
-             x_56: "d".
-             T_56 = x_56.
-             S_06 = S_06 | S_05 T_56.
+             x_5_6: "d".
+             T_5_6 = x_5_6.
+             S_0_6 = S_0_6 | S_0_5 T_5_6.
 
 Nobody's ever going to use a grammar like this, but it illustrates the
 generality of the parsing algorithm, which was originally intended as only

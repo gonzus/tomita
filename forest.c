@@ -191,9 +191,9 @@ struct Node* forest_parse(Forest* forest, Slice text) {
 
 static void FreeSub(struct Subnode* A) {
   while (A != 0) {
-    if (--A->Links > 0) break;
     struct Subnode* Next = A->Next;
-    FREE(A);
+    UNREF(A);
+    if (A) break;
     A = Next;
   }
 }
@@ -331,8 +331,7 @@ static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P) {
       }
       // we are adding a reference to this Subnode, increment its reference count
       // fix by gonzo
-      ++P->Links;
-      Nd->Sub[Nd->Subs++] = P;
+      Nd->Sub[Nd->Subs++] = REF(P);
     } else {
       FreeSub(P);
     }
@@ -365,8 +364,14 @@ static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
   struct Node* Nd = &forest->NodeTab[N];
   struct Subnode* NewP = 0;
   MALLOC(struct Subnode, NewP);
-  NewP->Size = Nd->Size; if (P != 0) NewP->Size += P->Size, P->Links++;
-  NewP->Cur = N, NewP->Next = P, NewP->Links = 0;
+  NewP->Size = Nd->Size;
+  if (P != 0) {
+    NewP->Size += P->Size;
+    REF(P);
+  }
+  NewP->Cur = N;
+  NewP->Next = P;
+  NewP->Links = 0;
   P = NewP;
   if ((forest->PathE & 7) == 0) {
     REALLOC(struct Path, forest->PathTab, forest->PathE + 8);
@@ -440,7 +445,9 @@ void forest_show(Forest* forest) {
     forest_show_node(forest, Nd);
     if (Nd->Subs > 0) {
       P = Nd->Sub[0];
-      if (forest->NodeTab[P->Cur].Sym->literal) {
+      // we were not checking P in the next if
+      // fix by gonzo
+      if (P && forest->NodeTab[P->Cur].Sym->literal) {
         putchar(':');
       } else {
         printf(" =");
