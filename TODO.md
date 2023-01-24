@@ -1,23 +1,21 @@
-## ToDo
+## ToDo 🔨
 
-### Definitely!
+### Definitely 👍
 
 * Support comments in grammar files -- probably with `#`.
+* Support `yacc` syntax in grammar files -- easier to copy / paste.
 * Add unit tests: *yes* **yes** ***yes***.
 * Make multi-step work possible.  This is hampered today by the fact that a
-  `forest` needs a `parser` (and a `grammar`), and a `parser` needs a
-  `grammar`.
+  `parser` needs a `grammar` and a `forest` needs a `parser` (and a `grammar`).
   * Step 1: processing a `grammar` definition and generating the `parser` for
-    the given `grammar`.  This step should print information about any
-    conflicts found in the grammar (`shift/reduce`, `reduce/reduce`,
-    `accept/reduce`).
+    the given `grammar`.
   * Step 2: using the `parser` to process a file and generate a parsing
     `forest`, corresponding to all possible parse trees for the input.  This
     step should print information about ambiguities in the input.
   * These steps should be "`make`-friendly" -- if a grammar definition has not
     changed, we should not have to regenerate the corresponding `parser`.
 * Define a sane way for step #2 to work.
-  * Avoid code generation / templates?  This forces to have a template for each
+  * Use code generation / templates?  This forces to have a template for each
     target language we wish to support -- but see below.
   * Maybe generate the parsing tables in a "universal" format (JSON?).  This
     forces to implement, in each target language we wish to support, the
@@ -25,7 +23,7 @@
 
 * Add documentation.
 
-### Probably...
+### Probably 🤔
 
 * Support some form of lexing.  The current behavior is:
   * The tokens are defined as part of the grammar.
@@ -35,6 +33,10 @@
   algorithm.  It should be possible to map each major routine to each part of
   the algorithm.
 
-### Maybe?
+### Maybe ❓
 
 * Not sure yet...
+
+### Already done 🔥
+* Print information about any conflicts found in the grammar (`shift/reduce`,
+  `reduce/reduce`) while generating the parser.
