@@ -138,28 +138,47 @@ static void parser_build(Parser* parser) {
 }
 
 void parser_show(Parser* parser) {
+  unsigned conflict_sr = 0;
+  unsigned conflict_rr = 0;
   for (unsigned S = 0; S < parser->Ss; ++S) {
     printf("%d:\n", S);
     struct State* St = &parser->SList[S];
     if (St->Final) printf("\taccept\n");
-    for (unsigned I = 0; I < St->Es; ++I) {
-      Slice sn = St->EList[I]->name;
+    for (unsigned j = 0; j < St->Es; ++j) {
+      Slice sn = St->EList[j]->name;
       printf("\t[%.*s -> 1]\n", sn.len, sn.ptr);
     }
-    for (unsigned I = 0; I < St->Rs; ++I) {
-      Slice rn = St->RList[I].LHS->name;
+
+    for (unsigned j = 0; j < St->Rs; ++j) {
+      struct Reduce* r = &St->RList[j];
+      Slice rn = r->LHS->name;
       printf("\t[%.*s ->", rn.len, rn.ptr);
-      for (Rule R = St->RList[I].RHS; *R != 0; ++R) {
+      for (Rule R = r->RHS; *R != 0; ++R) {
         Slice nn = (*R)->name;
         printf(" %.*s", nn.len, nn.ptr);
       }
       printf("]\n");
     }
-    for (unsigned I = 0; I < St->Ss; ++I) {
-      Slice xn = St->SList[I].X->name;
-      printf("\t%.*s => %d\n", xn.len, xn.ptr, St->SList[I].Q);
+    if (St->Rs > 1) {
+      unsigned n = St->Rs - 1;
+      printf("\t\t*** %u reduce/reduce conflict%s ***\n", n, n == 1 ? "" : "s");
+      conflict_rr += n;
+    }
+
+    for (unsigned j = 0; j < St->Ss; ++j) {
+      struct Shift* s = &St->SList[j];
+      Slice sn = s->X->name;
+      printf("\t%.*s => %d\n", sn.len, sn.ptr, s->Q);
+    }
+    if (St->Ss > 0 && St->Rs > 0) {
+      unsigned n = St->Ss;
+      printf("\t\t*** %u shift/reduce conflict%s ***\n", n, n == 1 ? "" : "s");
+      conflict_sr += n;
     }
   }
+  printf("--------\n");
+  printf("%u total shift/reduce conflicts\n", conflict_sr);
+  printf("%u total reduce/reduce conflicts\n", conflict_rr);
 }
 
 static struct Item* item_make(Symbol* LHS, Rule RHS) {
