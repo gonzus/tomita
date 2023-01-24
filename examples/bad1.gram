@@ -1,4 +1,6 @@
-@ A;
+# according to bison, this has 1 reduce/reduce conflict
+
+# @ A; # not needed, A is the LHS of the first rule
 
 A : B c d
   | E c f

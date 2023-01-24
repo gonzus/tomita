@@ -6,6 +6,7 @@
 #include "grammar.h"
 
 #define MAX_SYM 0x100
+#define GRAMMAR_COMMENT    '#'
 #define GRAMMAR_TERMINATOR ';'
 #define GRAMMAR_EQ_RULE    ':'
 #define GRAMMAR_EQ_TOKEN   '='
@@ -24,6 +25,7 @@ typedef struct Token {
 // copies all the pointers into rules, and then reset the work buffer.
 static Symbol* sym_buf[MAX_SYM];
 static Symbol** sym_pos;
+static unsigned in_comment;
 
 static Symbol* lookup(Grammar* grammar, Slice name, unsigned literal);
 static unsigned input_flush(Slice text, unsigned pos, Token* tok);
@@ -179,6 +181,14 @@ static unsigned input_flush(Slice text, unsigned pos, Token* tok) {
 static unsigned input_token(Slice text, unsigned pos, Token* tok) {
   memset(tok, 0, sizeof(Token));
   do {
+    // skip comments
+    if (in_comment) {
+      while (pos < text.len && text.ptr[pos] != '\n') ++pos;
+      ++pos;
+      in_comment = 0;
+      continue;
+    }
+
     // skip whitespace
     while (pos < text.len && isspace(text.ptr[pos])) ++pos;
 
@@ -189,6 +199,11 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
     }
 
     // one of these special single characters?
+    if (text.ptr[pos] == GRAMMAR_COMMENT) {
+      in_comment = 1;
+      ++pos;
+      continue;
+    }
     if (text.ptr[pos] == GRAMMAR_OR) {
       tok->typ = OrT;
       ++pos;
@@ -234,8 +249,7 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
       if (text.ptr[pos] == '"') ++pos; // skip closing "
       break;
     }
-
-  } while (0);
+  } while (1);
 
   LOG_DEBUG("token type %u, value [%.*s]", tok->typ, tok->val.len, tok->val.ptr);
   return pos;

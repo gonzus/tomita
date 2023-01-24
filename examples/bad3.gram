@@ -1,4 +1,6 @@
-@ exp;
+# according to bison, this has 42 shift/reduce conflicts
+
+# @ exp; # not needed, exp is the LHS of the first rule
 
 exp : exp add exp
     | exp sub exp
