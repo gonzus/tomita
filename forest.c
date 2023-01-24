@@ -43,7 +43,7 @@ struct Vertex {
 struct RRed {
   struct ZNode* Z;
   Symbol* LHS;
-  Rule RHS;
+  Symbol** RHS;
 };
 
 struct ERed {
@@ -55,10 +55,10 @@ static void forest_prepare(Forest* forest);
 static void forest_cleanup(Forest* forest);
 static void FreeSub(struct Subnode* A);
 static unsigned AddQ(Forest* forest, struct State* S);
-static void Reduce1(Forest* forest, struct ZNode* Z, Symbol* L, Rule R);
+static void Reduce1(Forest* forest, struct ZNode* Z, Symbol* L, Symbol** R);
 static void AddN(Forest* forest, unsigned N, unsigned W);
 static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P);
-static void AddRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Rule RHS);
+static void AddRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Symbol** RHS);
 static void AddERed(Forest* forest, unsigned W, Symbol* LHS);
 static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P);
 static struct State* Next(Forest* forest, struct State* Q, Symbol* Sym);
@@ -216,7 +216,7 @@ static unsigned AddQ(Forest* forest, struct State* S) {
   return forest->VertE++;
 }
 
-static void Reduce1(Forest* forest, struct ZNode* Z, Symbol* L, Rule R) {
+static void Reduce1(Forest* forest, struct ZNode* Z, Symbol* L, Symbol** R) {
   forest->PathTab = 0;
   forest->PathE = 0;
   unsigned PathP = 0;
@@ -336,7 +336,7 @@ static unsigned AddSub(Forest* forest, Symbol* L, struct Subnode* P) {
   return N;
 }
 
-static void AddRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Rule RHS) {
+static void AddRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Symbol** RHS) {
   if ((forest->RE & 7) == 0) {
     REALLOC(struct RRed, forest->REDS, forest->RE + 8);
   }

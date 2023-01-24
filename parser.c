@@ -6,7 +6,7 @@
 #include "parser.h"
 
 static void parser_build(Parser* parser);
-static struct Item* item_make(Symbol* LHS, Rule RHS);
+static struct Item* item_make(Symbol* LHS, Symbol** RHS);
 static struct Items* item_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, unsigned* XMax);
 static void item_add(struct Items* Q, struct Item* It);
 static int item_compare(struct Item* A, struct Item* B);
@@ -51,7 +51,7 @@ static void parser_build(Parser* parser) {
   parser->Ss = 0;
 
   // Create initial state
-  Rule StartR = 0;
+  Symbol** StartR = 0;
   MALLOC_N(Symbol*, StartR, 2);
   StartR[0] = parser->grammar->start;
   StartR[1] = 0;
@@ -153,7 +153,7 @@ void parser_show(Parser* parser) {
       struct Reduce* r = &St->RList[j];
       Slice rn = r->LHS->name;
       printf("\t[%.*s ->", rn.len, rn.ptr);
-      for (Rule R = r->RHS; *R != 0; ++R) {
+      for (Symbol** R = r->RHS; *R != 0; ++R) {
         Slice nn = (*R)->name;
         printf(" %.*s", nn.len, nn.ptr);
       }
@@ -181,7 +181,7 @@ void parser_show(Parser* parser) {
   printf("%u total reduce/reduce conflicts\n", conflict_rr);
 }
 
-static struct Item* item_make(Symbol* LHS, Rule RHS) {
+static struct Item* item_make(Symbol* LHS, Symbol** RHS) {
   struct Item* It = 0;
   MALLOC(struct Item, It);
   REF(It);

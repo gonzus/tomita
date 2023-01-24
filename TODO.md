@@ -18,7 +18,6 @@
   * Maybe generate the parsing tables in a "universal" format (JSON?).  This
     forces to implement, in each target language we wish to support, the
     "driver" that reads this information and uses it to run the parser.
-
 * Add documentation.
 
 ### Probably 🤔
@@ -26,7 +25,7 @@
 * Support some form of lexing.  The current behavior is:
   * The tokens are defined as part of the grammar.
   * The driver reads strings separated by white space and treats each string as
-    a symbol to be passed to the parser.
+    a token to be passed to the parser.
 * Map the implementation to some form of reference document that describes the
   algorithm.  It should be possible to map each major routine to each part of
   the algorithm.

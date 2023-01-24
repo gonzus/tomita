@@ -5,7 +5,6 @@
 #include "mem.h"
 #include "grammar.h"
 
-#define MAX_SYM 0x100
 #define GRAMMAR_COMMENT    '#'
 #define GRAMMAR_TERMINATOR ';'
 #define GRAMMAR_EQ_RULE    ':'
@@ -23,6 +22,7 @@ typedef struct Token {
 // A work buffer for pointers to symbols, used to store rules.
 // Once a rule is completed, we make a call to symbol_insert_rule(), which
 // copies all the pointers into rules, and then reset the work buffer.
+#define MAX_SYM 0x100
 static Symbol* sym_buf[MAX_SYM];
 static Symbol** sym_pos;
 static unsigned in_comment;

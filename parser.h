@@ -4,8 +4,8 @@
 
 struct Item {
   Symbol* LHS;
-  Rule RHS;
-  Rule Pos;
+  Symbol** RHS;
+  Symbol** Pos;
   unsigned Links;
 };
 
@@ -22,7 +22,7 @@ struct Shift {
 
 struct Reduce {
   Symbol* LHS;
-  Rule RHS;
+  Symbol** RHS;
 };
 
 struct State {
