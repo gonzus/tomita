@@ -1,0 +1,9 @@
+S : NP VP;
+NP : n | d n | t S;
+VP : v a;
+
+d = a the that;
+t = that;
+a = important doubtful;
+n = that information;
+v = is;

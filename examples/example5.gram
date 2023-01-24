@@ -1,0 +1,9 @@
+S : NP VP | S PP;
+NP : n | d n | NP PP;
+PP : p NP;
+VP : v NP;
+
+d = a the;
+p = on in with;
+n = I man bed apartment apt park telescope scope;
+v = saw;

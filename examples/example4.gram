@@ -1,0 +1,9 @@
+S : NP VP | S PP;
+NP : d n;
+PP : p NP;
+VP : v NP;
+
+d = my a;
+p = in with at before after from until for without;
+n = car radio;
+v = has;
