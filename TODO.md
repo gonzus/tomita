@@ -2,8 +2,6 @@
 
 ### Definitely 👍
 
-* Support comments in grammar files -- probably with `#`.
-* Support `yacc` syntax in grammar files -- easier to copy / paste.
 * Add unit tests: *yes* **yes** ***yes***.
 * Make multi-step work possible.  This is hampered today by the fact that a
   `parser` needs a `grammar` and a `forest` needs a `parser` (and a `grammar`).
@@ -40,3 +38,5 @@
 ### Already done 🔥
 * Print information about any conflicts found in the grammar (`shift/reduce`,
   `reduce/reduce`) while generating the parser.
+* Support `yacc` syntax in grammar files -- easier to copy / paste.
+* Support comments in grammar files -- probably with `#`.
