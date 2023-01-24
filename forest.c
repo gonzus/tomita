@@ -9,7 +9,7 @@
 struct Subnode {
   unsigned Size;
   unsigned Cur;
-  unsigned Links;            // reference counted
+  unsigned ref_cnt;            // reference counted
   struct Subnode* Next;      // link to next Subnode
 };
 
@@ -232,7 +232,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     P->Size = 1;
     P->Cur = subnode_add(forest, Word, 0);
     P->Next = 0;
-    P->Links = 0;
+    P->ref_cnt = 0;
     unsigned VP = forest->vert_pos;
     forest->vert_pos = forest->vert_cap;
     forest->node_pos = forest->node_cap;
@@ -450,7 +450,7 @@ static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
   }
   NewP->Cur = N;
   NewP->Next = P;
-  NewP->Links = 0;
+  NewP->ref_cnt = 0;
   P = NewP;
   if ((forest->path_cap & 7) == 0) {
     REALLOC(struct Path, forest->path_table, forest->path_cap + 8);

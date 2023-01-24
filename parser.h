@@ -6,7 +6,7 @@ struct Item {
   Symbol* LHS;
   Symbol** RHS;
   Symbol** Pos;
-  unsigned Links;
+  unsigned ref_cnt;
 };
 
 struct Items {

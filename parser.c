@@ -239,7 +239,7 @@ static struct Item* item_clone(struct Item* A) {
   *B = *A;
 
   // careful with the clone's reference count!
-  B->Links = 0;
+  B->ref_cnt = 0;
   REF(B);
 
   return B;

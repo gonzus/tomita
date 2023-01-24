@@ -57,13 +57,13 @@
     } \
   } while (0)
 
-#define REF(x) ((x) ? (++((x)->Links), x)  : 0)
+#define REF(x) ((x) ? (++((x)->ref_cnt), x)  : 0)
 
 #define UNREF(x) \
   if (x) { \
-    if ((x)->Links) {\
-      --((x)->Links); \
-      if (!(x)->Links) {\
+    if ((x)->ref_cnt) {\
+      --((x)->ref_cnt); \
+      if (!(x)->ref_cnt) {\
         FREE(x); \
         x = 0; \
       } \
