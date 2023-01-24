@@ -6,8 +6,13 @@
 #include "grammar.h"
 
 #define MAX_SYM 0x100
+#define GRAMMAR_TERMINATOR '.'
+#define GRAMMAR_EQ_RULE '='
+#define GRAMMAR_EQ_TOKEN ':'
+#define GRAMMAR_START '*'
+#define GRAMMAR_OR '|'
 
-typedef enum { EndT, StarT, ColonT, EqualT, BarT, IdenT, DotT } TokenType;
+typedef enum { EndT, StartT, EqTokenT, EqRuleT, OrT, IdenT, TermT } TokenType;
 
 typedef struct Token {
   TokenType typ;
@@ -44,20 +49,20 @@ Grammar* grammar_create(Slice text) {
         do_equal = 1;
         break;
 
-      case DotT:
+      case TermT:
         pos = input_token(text, pos, &tok);
         continue;
 
-      case ColonT:
-      case EqualT:
-        LOG_WARN("missing left-hand side of rule, or '.' from previous rule");
+      case EqTokenT:
+      case EqRuleT:
+        LOG_WARN("missing left-hand side of rule, or '%c' from previous rule", GRAMMAR_TERMINATOR);
         pos = input_flush(text, pos, &tok);
         break;
 
-      case StarT:
+      case StartT:
         pos = input_token(text, pos, &tok);
         if (tok.typ != IdenT) {
-          LOG_WARN("missing symbol after '*'");
+          LOG_WARN("missing symbol after '%c'", GRAMMAR_START);
         } else {
           grammar->start = lookup(grammar, tok.val, 0);
           if (saw_start++ > 0) {
@@ -68,7 +73,7 @@ Grammar* grammar_create(Slice text) {
         pos = input_flush(text, pos, &tok);
         break;
 
-      case BarT:
+      case OrT:
         LOG_WARN("corrupt rule");
         pos = input_flush(text, pos, &tok);
         break;
@@ -82,14 +87,14 @@ Grammar* grammar_create(Slice text) {
       }
       pos = input_token(text, pos, &tok);
       switch (tok.typ) {
-        case DotT:
+        case TermT:
           sym_pos = sym_buf;
           *sym_pos++ = lhs;
           *sym_pos++ = 0;
           symbol_insert_rule(lookup(grammar, lhs->name, 1), sym_buf, sym_pos);
           break;
 
-        case ColonT:
+        case EqTokenT:
           sym_pos = sym_buf;
           *sym_pos++ = lhs;
           *sym_pos++ = 0;
@@ -98,7 +103,7 @@ Grammar* grammar_create(Slice text) {
           }
           break;
 
-        case EqualT:
+        case EqRuleT:
           do {
             pos = input_token(text, pos, &tok);
             for (sym_pos = sym_buf; tok.typ == IdenT && sym_pos < sym_buf + MAX_SYM; pos = input_token(text, pos, &tok)) {
@@ -110,21 +115,21 @@ Grammar* grammar_create(Slice text) {
             }
             *sym_pos++ = 0;
             symbol_insert_rule(lhs, sym_buf, sym_pos);
-          } while (tok.typ == BarT);
+          } while (tok.typ == OrT);
           break;
 
         default:
-          LOG_WARN("missing '=' or ':'");
+          LOG_WARN("missing '%c' or '%c'", GRAMMAR_EQ_RULE, GRAMMAR_EQ_TOKEN);
           pos = input_flush(text, pos, &tok);
           break;
       }
     }
 
     if (tok.typ == EndT) {
-      LOG_WARN("missing '.'");
+      LOG_WARN("missing '%c'", GRAMMAR_TERMINATOR);
       break;
     }
-    if (tok.typ == DotT) {
+    if (tok.typ == TermT) {
       pos = input_token(text, pos, &tok);
     }
   }
@@ -166,7 +171,7 @@ static Symbol* lookup(Grammar* grammar, Slice name, unsigned literal) {
 }
 
 static unsigned input_flush(Slice text, unsigned pos, Token* tok) {
-  while (tok->typ != DotT && tok->typ != EndT)
+  while (tok->typ != TermT && tok->typ != EndT)
     pos = input_token(text, pos, tok);
   return pos;
 }
@@ -184,28 +189,28 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
     }
 
     // one of these special single characters?
-    if (text.ptr[pos] == '|') {
-      tok->typ = BarT;
+    if (text.ptr[pos] == GRAMMAR_OR) {
+      tok->typ = OrT;
       ++pos;
       break;
     }
-    if (text.ptr[pos] == '*') {
-      tok->typ = StarT;
+    if (text.ptr[pos] == GRAMMAR_START) {
+      tok->typ = StartT;
       ++pos;
       break;
     }
-    if (text.ptr[pos] == ':') {
-      tok->typ = ColonT;
+    if (text.ptr[pos] == GRAMMAR_EQ_TOKEN) {
+      tok->typ = EqTokenT;
       ++pos;
       break;
     }
-    if (text.ptr[pos] == '=') {
-      tok->typ = EqualT;
+    if (text.ptr[pos] == GRAMMAR_EQ_RULE) {
+      tok->typ = EqRuleT;
       ++pos;
       break;
     }
-    if (text.ptr[pos] == '.') {
-      tok->typ = DotT;
+    if (text.ptr[pos] == GRAMMAR_TERMINATOR) {
+      tok->typ = TermT;
       ++pos;
       break;
     }
