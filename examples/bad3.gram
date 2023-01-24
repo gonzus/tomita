@@ -1,0 +1,23 @@
+@ exp;
+
+exp : exp add exp
+    | exp sub exp
+    | exp mul exp
+    | exp div exp
+    | number
+    | lpar exp rpar
+    | exp power exp
+    | exp equal exp
+    | not exp
+    ;
+
+number = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+add = "+";
+sub = "-";
+mul = "*";
+div = "/";
+lpar = "(";
+rpar = ")";
+power = "^";
+equal = "=";
+not = "!";

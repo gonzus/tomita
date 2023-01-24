@@ -1,0 +1,16 @@
+@ A;
+
+A : B C d
+  | E C f
+  ;
+B : x y ;
+E : x y ;
+C : c
+  | C c
+  ;
+
+d = "d";
+f = "f";
+x = "x";
+y = "y";
+c = "c";

@@ -6,11 +6,11 @@
 #include "grammar.h"
 
 #define MAX_SYM 0x100
-#define GRAMMAR_TERMINATOR '.'
-#define GRAMMAR_EQ_RULE '='
-#define GRAMMAR_EQ_TOKEN ':'
-#define GRAMMAR_START '*'
-#define GRAMMAR_OR '|'
+#define GRAMMAR_TERMINATOR ';'
+#define GRAMMAR_EQ_RULE    ':'
+#define GRAMMAR_EQ_TOKEN   '='
+#define GRAMMAR_START      '@'
+#define GRAMMAR_OR         '|'
 
 typedef enum { EndT, StartT, EqTokenT, EqRuleT, OrT, IdenT, TermT } TokenType;
 

@@ -1,0 +1,15 @@
+NP : d n
+   | NP PP
+   ;
+VP : v NP
+   | VP PP
+   ;
+PP : p NP;
+S : NP VP;
+
+@ S;
+
+d = the a an;
+p = in with at before after from until for without;
+n = girl boy park telescope saw game;
+v = saw played;
