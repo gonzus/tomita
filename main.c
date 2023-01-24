@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include "util.h"
 #include "log.h"
@@ -53,10 +52,10 @@ static void process_path(Forest* forest, const char* path) {
 
 static void show_usage(const char* prog) {
   printf(
-      "Usage: %s -f file [-gsc] file ...\n"
+      "Usage: %s -f file [-gts] file ...\n"
       "   -f  use this grammar file (required)\n"
       "   -g  display input grammar\n"
-      "   -c  display parsing table\n"
+      "   -t  display parsing table\n"
       "   -s  display parsing stack\n"
       "   -?  print this help\n",
       prog
@@ -65,12 +64,12 @@ static void show_usage(const char* prog) {
 
 int main(int argc, char **argv) {
   int c;
-  while ((c = getopt(argc, argv, "gcsf:?")) != -1) {
+  while ((c = getopt(argc, argv, "gtsf:?")) != -1) {
     switch (c) {
       case 'g':
         opt_grammar = 1;
         break;
-      case 'c':
+      case 't':
         opt_table = 1;
         break;
       case 's':

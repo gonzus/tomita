@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 // equivalent of: v = (T) malloc(s)
 // v must be declared already
