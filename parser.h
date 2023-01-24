@@ -28,19 +28,18 @@ struct Reduce {
 struct State {
   unsigned char Final;
   unsigned Es;
-  unsigned Rs;
-  unsigned Ss;
   Symbol** EList;
+  unsigned Rs;
   struct Reduce* RList;
+  unsigned Ss;
   struct Shift* SList;
 };
 
 typedef struct Parser {
   Grammar* grammar;
-  struct State* SList;
-
-  struct Items* STab;
   unsigned Ss;
+  struct State* SList;
+  struct Items* STab;
 } Parser;
 
 Parser* parser_create(Grammar* grammar);

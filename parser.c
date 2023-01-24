@@ -25,18 +25,20 @@ Parser* parser_create(Grammar* grammar) {
 void parser_destroy(Parser* parser) {
   if (parser->STab) {
     for (unsigned j = 0; j < parser->Ss; ++j) {
-      for (unsigned k = 0; k < parser->STab[j].Size; ++k) {
-        UNREF(parser->STab[j].List[k]);
+      struct Items* STab = &parser->STab[j];
+      for (unsigned k = 0; k < STab->Size; ++k) {
+        UNREF(STab->List[k]);
       }
-      FREE(parser->STab[j].List);
+      FREE(STab->List);
     }
     FREE(parser->STab);
   }
   if (parser->SList) {
     for (unsigned j = 0; j < parser->Ss; ++j) {
-      FREE(parser->SList[j].EList);
-      FREE(parser->SList[j].RList);
-      FREE(parser->SList[j].SList);
+      struct State* SList = &parser->SList[j];
+      FREE(SList->EList);
+      FREE(SList->RList);
+      FREE(SList->SList);
     }
     FREE (parser->SList);
   }
