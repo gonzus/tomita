@@ -275,7 +275,9 @@ static void subnode_free(struct Subnode* A) {
 
 static unsigned subnode_add(Forest* forest, Symbol* L, struct Subnode* P) {
   unsigned N, S, Size; struct Node* Nd;
-  Size = L->literal? 1: (P == 0)? 0: P->Size;
+  Size = L->literal ? 1
+       : (P == 0)   ? 0
+       : P->Size;
   for (N = forest->node_pos; N < forest->node_cap; ++N) {
     Nd = &forest->node_table[N];
     if (Nd->Sym == L && Nd->Size == Size) break;

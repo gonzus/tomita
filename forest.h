@@ -3,6 +3,7 @@
 #include "symbol.h"
 #include "parser.h"
 
+// a parse forest, which contains one or more parse trees
 typedef struct Forest {
   Parser* parser;            // the parser used to create this parse forest
   int prepared;              // is this forest prepared, or was it cleaned up?
@@ -28,11 +29,20 @@ typedef struct Forest {
   unsigned er_pos;           //   "current" element
 } Forest;
 
+// Create a forest for a given parser.
 Forest* forest_create(Parser* parser);
+
+// Destroy a forest created with forest_create().
 void forest_destroy(Forest* forest);
 
+// Parse some text, populating the parse forest.
 struct Node* forest_parse(Forest* forest, Slice text);
 
+// Print a forest in a human-readable format.
 void forest_show(Forest* forest);
+
+// Print a forest node in a human-readable format.
 void forest_show_node(Forest* forest, struct Node* node);
+
+// Print the forest stack in a human-readable format.
 void forest_show_stack(Forest* forest);

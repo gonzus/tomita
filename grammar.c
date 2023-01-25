@@ -147,8 +147,8 @@ unsigned grammar_check(Grammar* grammar) {
   unsigned errors = 0;
   for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->tail) {
     ++total;
-    if (symbol->defined) continue;
     if (symbol->literal) continue;
+    if (symbol->defined) continue;
     LOG_WARN("symbol [%.*s] undefined.\n", symbol->name.len, symbol->name.ptr);
     ++errors;
   }
