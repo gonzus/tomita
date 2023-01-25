@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include "util.h"
 #include "log.h"
+#include "lexer_simple.h"
 #include "forest.h"
 
 #define MAX_BUF (1024*1024)
@@ -92,6 +93,7 @@ int main(int argc, char **argv) {
   argv += optind;
 
   Grammar* grammar = 0;
+  Lexer* lexer = 0;
   Parser* parser = 0;
   Forest* forest = 0;
   do {
@@ -115,6 +117,10 @@ int main(int argc, char **argv) {
       printf("%.*s\n", text_grammar.len, text_grammar.ptr);
     }
 
+    lexer = lexer_create(grammar->symtab);
+    if (!lexer) break;
+    LOG_INFO("created lexer");
+
     parser = parser_create(grammar);
     if (!parser) break;
     LOG_INFO("created parser");
@@ -122,7 +128,7 @@ int main(int argc, char **argv) {
       parser_show(parser);
     }
 
-    forest = forest_create(parser);
+    forest = forest_create(lexer_data(lexer), parser);
     LOG_INFO("created forest");
 
     for (int j = 0; j < argc; ++j) {
@@ -130,12 +136,10 @@ int main(int argc, char **argv) {
     }
   } while (0);
 
-  if (forest)
-    forest_destroy(forest);
-  if (parser)
-    parser_destroy(parser);
-  if (grammar)
-    grammar_destroy(grammar);
+  if (forest) forest_destroy(forest);
+  if (parser) parser_destroy(parser);
+  if (lexer) lexer_destroy(lexer);
+  if (grammar) grammar_destroy(grammar);
 
   return 0;
 }

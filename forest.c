@@ -57,7 +57,7 @@ struct ERed {
 static void forest_prepare(Forest* forest);
 static void forest_cleanup(Forest* forest);
 static void forest_show_vertex(Forest* forest, unsigned W);
-static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** sym);
+static Symbol* next_symbol(Forest* forest);
 
 static void subnode_free(struct Subnode* A);
 static int subnode_equal(struct Subnode* A, struct Subnode* B);
@@ -71,10 +71,11 @@ static void AddRRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Symbol** RHS);
 static void AddERed(Forest* forest, unsigned W, Symbol* LHS);
 static struct State* NextState(Forest* forest, struct State* Q, Symbol* Sym);
 
-Forest* forest_create(Parser* parser) {
+Forest* forest_create(LexerI* lexer, Parser* parser) {
   Forest* forest = 0;
   MALLOC(Forest, forest);
   forest->parser = parser;
+  forest->lexer = lexer;
   return forest;
 }
 
@@ -210,8 +211,10 @@ static void forest_cleanup(Forest* forest) {
 struct Node* forest_parse(Forest* forest, Slice text) {
   forest_cleanup(forest);
   forest_prepare(forest);
+
+  LexerI* lexer = forest->lexer;
+  lexer->set_input(lexer->context, text);
   AddQ(forest, &forest->parser->SList[0]);
-  unsigned pos = 0;
   while (1) {
     /* REDUCE */
     while (forest->ee_pos < forest->ee_cap || forest->rr_pos < forest->rr_cap) {
@@ -223,8 +226,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
       }
     }
     /* SHIFT */
-    Symbol* Word = 0;
-    pos = next_symbol(forest, text, pos, &Word);
+    Symbol* Word = next_symbol(forest);
     if (Word == 0) break;
     // printf(" %.*s", Word->name.len, Word->name.ptr);
     struct Subnode* P = 0;
@@ -468,29 +470,22 @@ static struct State* NextState(Forest* forest, struct State* Q, Symbol* Sym) {
   return 0;
 }
 
-static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** sym) {
-  *sym = 0;
+static Symbol* next_symbol(Forest* forest) {
+  Symbol* sym = 0;
   do {
-    // skip whitespace
-    while (pos < text.len && (text.ptr[pos] == ' ' || text.ptr[pos] == '\t')) ++pos;
-
-    // ran out? done
-    if (pos >= text.len) break;
-
-    // work line by line -- good for an interactive session
-    if (text.ptr[pos] == '\n') {
-      ++pos;
+    LexerI* lexer = forest->lexer;
+    if (!lexer) {
+      LOG_WARN("could not get lexer from forest");
+      break;
+    }
+    sym = lexer->next_token(lexer->context);
+    if (!sym) {
+      LOG_WARN("could not get next token from lexer");
       break;
     }
 
-    // gather non-space characters as symbol name
-    unsigned beg = pos;
-    while (pos < text.len && !isspace(text.ptr[pos])) ++pos;
-    Slice name = slice_from_memory(text.ptr + beg, pos - beg);
-    symtab_lookup(forest->parser->grammar->symtab, name, 1, sym);
+    LOG_INFO("symbol %p [%.*s]", sym, sym->name.len, sym->name.ptr);
     ++forest->position;
   } while (0);
-
-  LOG_DEBUG("symbol %p [%.*s]", *sym, *sym ? (*sym)->name.len : 0, *sym ? (*sym)->name.ptr : 0);
-  return pos;
+  return sym;
 }

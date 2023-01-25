@@ -20,14 +20,17 @@ LDFLAGS += $(AFLAGS)
 all:	tom
 
 C_SRC = \
-	forest.c \
-	grammar.c \
-	log.c \
 	main.c \
-	parser.c \
-	slice.c \
+	\
 	symbol.c \
 	symtab.c \
+	grammar.c \
+	lexer_simple.c \
+	parser.c \
+	forest.c \
+	\
+	log.c \
+	slice.c \
 	util.c \
 
 C_OBJ = $(C_SRC:.c=.o)

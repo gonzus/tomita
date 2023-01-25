@@ -1,9 +1,12 @@
 #pragma once
 
 #include "symbol.h"
+#include "lexer.h"
 #include "parser.h"
 
 typedef struct Forest {
+  LexerI* lexer;
+
   Parser* parser;            // the parser used to create this parse forest
   int prepared;              // is this forest prepared, or was it cleaned up?
   unsigned position;         // sequential position value
@@ -28,7 +31,7 @@ typedef struct Forest {
   unsigned ee_pos;           //   "current" element
 } Forest;
 
-Forest* forest_create(Parser* parser);
+Forest* forest_create(LexerI* lexer, Parser* parser);
 void forest_destroy(Forest* forest);
 
 struct Node* forest_parse(Forest* forest, Slice text);
