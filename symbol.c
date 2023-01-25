@@ -40,8 +40,9 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {
       break;
     }
   }
-  if ((symbol->rule_count & 7) == 0)
-    REALLOC(Symbol**, symbol->rules, symbol->rule_count + 8);
+
+  // need more room and to shift later rules
+  TABLE_CHECK_GROW(symbol->rules, symbol->rule_count, 8, Symbol**);
   for (unsigned j = symbol->rule_count++; j > k; --j) {
     symbol->rules[j] = symbol->rules[j - 1];
   }

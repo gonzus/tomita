@@ -5,11 +5,11 @@
 #include "util.h"
 #include "forest.h"
 
-// a Subnode, stored as a linked list in a Node and a Path
+// a reference-counted Subnode, stored as a linked list in a Node and a Path
 struct Subnode {
   unsigned Size;
   unsigned Cur;
-  unsigned ref_cnt;            // reference counted
+  unsigned ref_cnt;          // reference counted
   struct Subnode* Next;      // link to next Subnode
 };
 
@@ -150,7 +150,7 @@ void forest_show_stack(Forest* forest) {
 
 static void forest_show_vertex(Forest* forest, unsigned W) {
   struct Vertex* V = &forest->vert_table[W];
-  printf(" v_%d_%ld", V->Start, V->Val - forest->parser->SList);
+  printf(" v_%d_%ld", V->Start, V->Val - forest->parser->state_table);
 }
 
 static void forest_prepare(Forest* forest) {
@@ -171,8 +171,8 @@ static void forest_prepare(Forest* forest) {
   forest->rr_cap = 0;
   forest->rr_pos = 0;
   forest->er_table = 0;
-  forest->ee_cap = 0;
-  forest->ee_pos = 0;
+  forest->er_cap = 0;
+  forest->er_pos = 0;
 }
 
 static void forest_cleanup(Forest* forest) {
@@ -204,22 +204,22 @@ static void forest_cleanup(Forest* forest) {
   FREE(forest->rr_table);
   forest->rr_cap = forest->rr_pos = 0;
   FREE(forest->er_table);
-  forest->ee_cap = forest->ee_pos = 0;
+  forest->er_cap = forest->er_pos = 0;
 }
 
 struct Node* forest_parse(Forest* forest, Slice text) {
   forest_cleanup(forest);
   forest_prepare(forest);
-  AddQ(forest, &forest->parser->SList[0]);
+  AddQ(forest, &forest->parser->state_table[0]);
   unsigned pos = 0;
   while (1) {
     /* REDUCE */
-    while (forest->ee_pos < forest->ee_cap || forest->rr_pos < forest->rr_cap) {
+    while (forest->er_pos < forest->er_cap || forest->rr_pos < forest->rr_cap) {
       for (; forest->rr_pos < forest->rr_cap; ++forest->rr_pos) {
         ReduceOne(forest, forest->rr_table[forest->rr_pos].Z, forest->rr_table[forest->rr_pos].LHS, forest->rr_table[forest->rr_pos].RHS);
       }
-      for (; forest->ee_pos < forest->ee_cap; ++forest->ee_pos) {
-        AddN(forest, subnode_add(forest, forest->er_table[forest->ee_pos].LHS, 0), forest->er_table[forest->ee_pos].W);
+      for (; forest->er_pos < forest->er_cap; ++forest->er_pos) {
+        AddN(forest, subnode_add(forest, forest->er_table[forest->er_pos].LHS, 0), forest->er_table[forest->er_pos].W);
       }
     }
     /* SHIFT */
@@ -257,7 +257,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
   // printf("\n");
   for (unsigned W = forest->vert_pos; W < forest->vert_cap; ++W) {
     struct Vertex* V = &forest->vert_table[W];
-    if (V->Val->Final) {
+    if (V->Val->final) {
       return &forest->node_table[V->List[0]->Val];
     }
   }
@@ -281,9 +281,7 @@ static unsigned subnode_add(Forest* forest, Symbol* L, struct Subnode* P) {
     if (Nd->Sym == L && Nd->Size == Size) break;
   }
   if (N >= forest->node_cap) {
-    if ((forest->node_cap & 7) == 0) {
-      REALLOC(struct Node, forest->node_table, forest->node_cap + 8);
-    }
+    TABLE_CHECK_GROW(forest->node_table, forest->node_cap, 8, struct Node);
     N = forest->node_cap++;
     Nd = &forest->node_table[N];
     Nd->Sym = L;
@@ -299,9 +297,7 @@ static unsigned subnode_add(Forest* forest, Symbol* L, struct Subnode* P) {
       if (subnode_equal(Nd->Sub[S], P)) break;
     }
     if (S >= Nd->Subs) {
-      if ((Nd->Subs & 3) == 0) {
-        REALLOC(struct Subnode*, Nd->Sub, Nd->Subs + 4);
-      }
+      TABLE_CHECK_GROW(Nd->Sub, Nd->Subs, 4, struct Subnode*);
       // we are adding a reference to this Subnode, increment its reference count
       // fix by gonzo
       Nd->Sub[Nd->Subs++] = REF(P);
@@ -323,16 +319,14 @@ static unsigned AddQ(Forest* forest, struct State* S) {
     struct Vertex* W = &forest->vert_table[V];
     if (W->Val == S) return V;
   }
-  if ((forest->vert_cap & 7) == 0) {
-    REALLOC(struct Vertex, forest->vert_table, forest->vert_cap + 8);
-  }
+  TABLE_CHECK_GROW(forest->vert_table, forest->vert_cap, 8, struct Vertex);
   struct Vertex* W = &forest->vert_table[forest->vert_cap];
   W->Val = S;
   W->Start = forest->position;
   W->Size = 0;
   W->List = 0;
-  for (unsigned E = 0; E < S->Es; ++E) {
-    AddERed(forest, forest->vert_cap, S->EList[E]);
+  for (unsigned E = 0; E < S->er_cap; ++E) {
+    AddERed(forest, forest->vert_cap, S->er_table[E]);
   }
   return forest->vert_cap++;
 }
@@ -392,9 +386,7 @@ static void AddN(Forest* forest, unsigned N, unsigned W) {
   if (Z >= W1->Size) {
     struct Reduce* Rd;
     unsigned int R;
-    if ((W1->Size & 3) == 0) {
-      REALLOC(struct ZNode*, W1->List, W1->Size + 4);
-    }
+    TABLE_CHECK_GROW(W1->List, W1->Size, 4, struct ZNode*);
     Z = W1->Size++;
     Z1 = 0;
     MALLOC(struct ZNode, Z1);
@@ -402,26 +394,23 @@ static void AddN(Forest* forest, unsigned N, unsigned W) {
     Z1->Val = N;
     Z1->Size = 0;
     Z1->List = 0;
-    for (R = 0; R < S->Rs; ++R) {
-      Rd = &S->RList[R], AddRRed(forest, Z1, Rd->LHS, Rd->RHS);
+    for (R = 0; R < S->rr_cap; ++R) {
+      Rd = &S->rr_table[R];
+      AddRRed(forest, Z1, Rd->lhs, Rd->rhs);
     }
   }
   for (I = 0; I < Z1->Size; ++I) {
     if (Z1->List[I] == W) break;
   }
   if (I >= Z1->Size) {
-    if ((Z1->Size & 3) == 0) {
-      REALLOC(unsigned, Z1->List, Z1->Size + 4);
-    }
+    TABLE_CHECK_GROW(Z1->List, Z1->Size, 4, unsigned);
     I = Z1->Size++;
     Z1->List[I] = W;
   }
 }
 
 static void AddRRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Symbol** RHS) {
-  if ((forest->rr_cap & 7) == 0) {
-    REALLOC(struct RRed, forest->rr_table, forest->rr_cap + 8);
-  }
+  TABLE_CHECK_GROW(forest->rr_table, forest->rr_cap, 8, struct RRed);
   forest->rr_table[forest->rr_cap].Z = Z;
   forest->rr_table[forest->rr_cap].LHS = LHS;
   forest->rr_table[forest->rr_cap].RHS = RHS;
@@ -429,12 +418,10 @@ static void AddRRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Symbol** RHS) 
 }
 
 static void AddERed(Forest* forest, unsigned W, Symbol* LHS) {
-  if ((forest->ee_cap & 7) == 0) {
-    REALLOC(struct ERed, forest->er_table, forest->ee_cap + 8);
-  }
-  forest->er_table[forest->ee_cap].W = W;
-  forest->er_table[forest->ee_cap].LHS = LHS;
-  ++forest->ee_cap;
+  TABLE_CHECK_GROW(forest->er_table, forest->er_cap, 8, struct ERed);
+  forest->er_table[forest->er_cap].W = W;
+  forest->er_table[forest->er_cap].LHS = LHS;
+  ++forest->er_cap;
 }
 
 static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
@@ -452,18 +439,16 @@ static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
   NewP->Next = P;
   NewP->ref_cnt = 0;
   P = NewP;
-  if ((forest->path_cap & 7) == 0) {
-    REALLOC(struct Path, forest->path_table, forest->path_cap + 8);
-  }
+  TABLE_CHECK_GROW(forest->path_table, forest->path_cap, 8, struct Path);
   PP = &forest->path_table[forest->path_cap++];
   PP->Z = Z;
   PP->P = P;
 }
 
 static struct State* NextState(Forest* forest, struct State* Q, Symbol* Sym) {
-  for (unsigned S = 0; S < Q->Ss; ++S) {
-    struct Shift* Sh = &Q->SList[S];
-    if (Sh->X == Sym) return &forest->parser->SList[Sh->Q];
+  for (unsigned S = 0; S < Q->ss_cap; ++S) {
+    struct Shift* Sh = &Q->ss_table[S];
+    if (Sh->symbol == Sym) return &forest->parser->state_table[Sh->state];
   }
   return 0;
 }

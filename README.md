@@ -25,15 +25,15 @@ Makefile, if necessary, and compile by typing `make`.
 
 The following files are included:
 ```
-    The source code ........ Makefile tom.c
-    This readme ............ README.md
+    The source code .......... Makefile tom.c
+    This readme .............. README.md
 docs:
-    Documentation .......... tom.doc
-    The Algorithm .......... tomita.ref
+    Documentation ............ tom.doc
+    The Algorithm ............ tomita.ref
 examples:
-    Sample grammars ........ gram0 gram1 gram2 gram3
-    Sample parsing table ... gram0.tab
-    Sample input & output .. in out
+    Sample grammars .......... gram0 gram1 gram2 gram3
+    Sample parsing table ..... gram0.tab
+    Sample input and output .. in out
 ```
 
 The file `gram0.tab` was created by entering the following command line and

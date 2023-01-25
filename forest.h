@@ -23,9 +23,9 @@ typedef struct Forest {
   unsigned rr_cap;           //   capacity of table
   unsigned rr_pos;           //   "current" element
 
-  struct ERed* er_table;     // empty reductionsA table (right-hand side empty)
-  unsigned ee_cap;           //   capacity of table
-  unsigned ee_pos;           //   "current" element
+  struct ERed* er_table;     // empty reductions table (right-hand side empty)
+  unsigned er_cap;           //   capacity of table
+  unsigned er_pos;           //   "current" element
 } Forest;
 
 Forest* forest_create(Parser* parser);
