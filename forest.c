@@ -237,7 +237,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     forest->vert_pos = forest->vert_cap;
     forest->node_pos = forest->node_cap;
     if (Word->rule_count == 0) { /* Treat the word as a new word. */
-      for (Symbol* S = forest->parser->grammar->first; S != 0; S = S->tail) {
+      for (Symbol* S = forest->parser->grammar->first; S != 0; S = S->nxt_list) {
         if (S->rule_count > 0) continue;
         unsigned N = subnode_add(forest, S, P);
         for (unsigned W = VP; W < forest->vert_pos; ++W) {

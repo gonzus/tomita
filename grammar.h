@@ -20,3 +20,6 @@ void grammar_destroy(Grammar* grammar);
 
 // Check if a grammar is usable.
 unsigned grammar_check(Grammar* grammar);
+
+// Print a grammar in a human-readable format.
+void grammar_show(Grammar* grammar);

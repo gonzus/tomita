@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdio.h>
 #include "log.h"
 #include "mem.h"
 #include "grammar.h"
@@ -145,7 +146,7 @@ void grammar_destroy(Grammar* grammar) {
 unsigned grammar_check(Grammar* grammar) {
   unsigned total = 0;
   unsigned errors = 0;
-  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->tail) {
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
     ++total;
     if (symbol->literal) continue;
     if (symbol->defined) continue;
@@ -156,6 +157,68 @@ unsigned grammar_check(Grammar* grammar) {
   return errors;
 }
 
+static void pad(unsigned padding) {
+  for (unsigned j = 0; j < padding; ++j) {
+    printf("%c", ' ');
+  }
+}
+
+static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals) {
+  if (!symbol->defined) {
+    // this non-terminal was never the LHS of a rule
+    printf("%.*s: UNDEFINED;\n", symbol->name.len, symbol->name.ptr);
+    return;
+  }
+
+  if (symbol->rule_count && !terminals) {
+    // this is a proper non-terminal with rules
+    int padding = symbol->name.len + 1;
+    printf("%.*s ", symbol->name.len, symbol->name.ptr);
+    for (unsigned j = 0; j < symbol->rule_count; ++j) {
+      if (j > 0) pad(padding);
+      printf("%c", j == 0 ? ':' : '|');
+      for (Symbol** rule = symbol->rules[j]; *rule; ++rule) {
+        printf(" %.*s", (*rule)->name.len, (*rule)->name.ptr);
+      }
+      printf("\n");
+    }
+    pad(padding);
+    printf(";\n");
+    return;
+  }
+
+  if (!symbol->rule_count && terminals) {
+    // this non-terminal is one of a list of tokens
+    printf("%.*s =", symbol->name.len, symbol->name.ptr);
+    for (Symbol* rhs = grammar->first; rhs != 0; rhs = rhs->nxt_list) {
+      if (!rhs->literal) continue;
+      for (unsigned j = 0; j < rhs->rule_count; ++j) {
+        Symbol* back = *rhs->rules[j];
+        if (!slice_equal(symbol->name, back->name)) continue;
+        printf(" \"%.*s\"", rhs->name.len, rhs->name.ptr);
+      }
+    }
+    printf(";\n");
+  }
+}
+
+void grammar_show(Grammar* grammar) {
+  printf("# start\n");
+  printf("@ %.*s\n", grammar->start->name.len, grammar->start->name.ptr);
+
+  printf("\n# rules\n");
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+    if (symbol->literal) continue;
+    show_symbol(grammar, symbol, 0);
+  }
+
+  printf("\n# terminals\n");
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+    if (symbol->literal) continue;
+    show_symbol(grammar, symbol, 1);
+  }
+}
+
 static Symbol* lookup(Grammar* grammar, Slice name, unsigned literal) {
   Symbol* symbol = 0;
   int created = symtab_lookup(grammar->symtab, name, literal, &symbol);
@@ -164,7 +227,7 @@ static Symbol* lookup(Grammar* grammar, Slice name, unsigned literal) {
   if (grammar->first == 0) {
     grammar->first = symbol;
   } else {
-    grammar->last->tail = symbol;
+    grammar->last->nxt_list = symbol;
   }
   grammar->last = symbol;
   return symbol;

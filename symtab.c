@@ -11,7 +11,7 @@ void symtab_destroy(SymTab* symtab) {
   for (unsigned h = 0; h < HASH_MAX; ++h) {
     for (Symbol* sym = symtab->table[h]; sym != 0; ) {
       Symbol* tmp = sym;
-      sym = sym->next;
+      sym = sym->nxt_hash;
       symbol_destroy(tmp);
     }
   }
@@ -32,7 +32,7 @@ int symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, Symbol** sy
   unsigned char h = hash(name);
 
   // try to locate first
-  for (s = symtab->table[h]; s != 0; s = s->next) {
+  for (s = symtab->table[h]; s != 0; s = s->nxt_hash) {
     if (s->literal != literal) continue;        // different literal
     if (!slice_equal(s->name, name)) continue;  // different name
     *sym = s;
@@ -41,7 +41,7 @@ int symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, Symbol** sy
 
   // not found, must create and chain
   s = symbol_create(name, literal);
-  s->next = symtab->table[h];
+  s->nxt_hash = symtab->table[h];
   symtab->table[h] = s;
   *sym = s;
   return 1;

@@ -15,8 +15,8 @@ typedef struct Symbol {
   unsigned index;          // sequential number
   unsigned rule_count;     // how many rules we have in rules
   struct Symbol*** rules;  // list of rules in right-hand side -- triple pointer!
-  struct Symbol* next;     // for symbol table chaining
-  struct Symbol* tail;     // TODO
+  struct Symbol* nxt_hash; // for symbol table chaining
+  struct Symbol* nxt_list; // for linked list of all symbols
 } Symbol;
 
 // Create a symbol given its name and whether is is a literal.

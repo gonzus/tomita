@@ -101,6 +101,9 @@ int main(int argc, char **argv) {
     LOG_INFO("read %u bytes from [%s]", len, opt_grammar_file);
     Slice raw = slice_from_memory(buf, len);
     Slice text_grammar = slice_trim(raw);
+    if (opt_grammar) {
+      printf("%.*s\n", text_grammar.len, text_grammar.ptr);
+    }
 
     grammar = grammar_create(text_grammar);
     if (!grammar) break;
@@ -112,7 +115,7 @@ int main(int argc, char **argv) {
       break;
     }
     if (opt_grammar) {
-      printf("%.*s\n", text_grammar.len, text_grammar.ptr);
+      grammar_show(grammar);
     }
 
     parser = parser_create(grammar);
