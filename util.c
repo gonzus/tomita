@@ -2,9 +2,9 @@
 #include <sys/stat.h>
 #include "util.h"
 
-unsigned slurp_file(const char* path, char* buf, unsigned cap) {
-  unsigned len = 0;
+unsigned slurp_file(const char* path, Buffer* b) {
   FILE* fp = 0;
+  unsigned len = 0;
   do {
     fp = fopen(path, "r");
     if (!fp) break;
@@ -12,11 +12,8 @@ unsigned slurp_file(const char* path, char* buf, unsigned cap) {
     struct stat st = {0};
     if (fstat(fileno(fp), &st)) break;
     len = st.st_size;
-    if (len >= cap) {
-      len = 0;
-      break;
-    }
-    unsigned nr = fread(buf, 1, len, fp);
+    buffer_ensure_total(b, len);
+    unsigned nr = fread(b->ptr, 1, len, fp);
     if (nr != len) {
       len = 0;
       break;
@@ -25,5 +22,6 @@ unsigned slurp_file(const char* path, char* buf, unsigned cap) {
   if (fp) {
     fclose(fp);
   }
+  b->len = len;
   return len;
 }

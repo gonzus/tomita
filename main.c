@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include "util.h"
 #include "log.h"
+#include "timer.h"
 #include "forest.h"
 
 #define MAX_BUF (1024*1024)
@@ -91,31 +92,44 @@ int main(int argc, char **argv) {
   argc -= optind;
   argv += optind;
 
+  Buffer src; buffer_build(&src);
+  Timer timer;
   Grammar* grammar = 0;
   Parser* parser = 0;
   Forest* forest = 0;
   do {
-    char buf[MAX_BUF];
-    unsigned len = slurp_file(opt_grammar_file, buf, MAX_BUF);
+#if 0
+    unsigned len = slurp_file(opt_grammar_file, &src);
     if (len <= 0) break;
     LOG_INFO("read %u bytes from [%s]", len, opt_grammar_file);
-    Slice raw = slice_from_memory(buf, len);
+    Slice raw = buffer_slice(&src);
     Slice text_grammar = slice_trim(raw);
     if (opt_grammar) {
       printf("%.*s\n", text_grammar.len, text_grammar.ptr);
     }
+#endif
 
-    grammar = grammar_create(text_grammar);
+    grammar = grammar_create();
     if (!grammar) break;
-    LOG_INFO("created grammar");
 
-    unsigned errors = grammar_check(grammar);
+    timer_start(&timer);
+    slurp_file(opt_grammar_file, &src);
+    Slice raw = buffer_slice(&src);
+    Slice text_grammar = slice_trim(raw);
+    unsigned errors = grammar_build_from_text(grammar, text_grammar);
+    timer_stop(&timer);
     if (errors) {
       LOG_INFO("grammar has %u errors", errors);
       break;
     }
+    LOG_INFO("built grammar from source in %luus", timer_elapsed_us(&timer));
     if (opt_grammar) {
       grammar_show(grammar);
+      grammar_save_to_path(grammar, "/tmp/tomita.out");
+      timer_start(&timer);
+      grammar_load_from_path(grammar, "/tmp/tomita.out");
+      timer_stop(&timer);
+      LOG_INFO("loaded grammar from file in %luus", timer_elapsed_us(&timer));
     }
 
     parser = parser_create(grammar);
@@ -139,6 +153,7 @@ int main(int argc, char **argv) {
     parser_destroy(parser);
   if (grammar)
     grammar_destroy(grammar);
+  buffer_destroy(&src);
 
   return 0;
 }

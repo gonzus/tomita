@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include "slice.h"
 
 // The rules of a symbol point to other symbols.
@@ -20,10 +21,13 @@ typedef struct Symbol {
 } Symbol;
 
 // Create a symbol given its name and whether is is a literal.
-Symbol* symbol_create(Slice name, unsigned literal);
+Symbol* symbol_create(Slice name, unsigned literal, unsigned* counter);
 
 // Destroy a symbol created with symbol_create().
 void symbol_destroy(Symbol* symbol);
 
 // Insert the right-hand side rule that defines a (non-terminal) symbol.
 void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP);
+
+void symbol_print_definition(Symbol* symbol, FILE* fp);
+void symbol_print_rules(Symbol* symbol, FILE* fp);

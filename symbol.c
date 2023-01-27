@@ -1,15 +1,14 @@
 #include "log.h"
 #include "mem.h"
+#include "tomita.h"
 #include "symbol.h"
 
-static unsigned COUNTER = 0;
-
-Symbol* symbol_create(Slice name, unsigned literal) {
+Symbol* symbol_create(Slice name, unsigned literal, unsigned* counter) {
   Symbol* symbol = 0;
   MALLOC(Symbol, symbol);
   symbol->name = name;
   symbol->literal = literal;
-  symbol->index = COUNTER++;
+  symbol->index = (*counter)++;
   LOG_DEBUG("created symbol #%d [%.*s]", symbol->index, symbol->name.len, symbol->name.ptr);
   return symbol;
 }
@@ -54,5 +53,19 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {
     rule[k] = SymBuf[k];
     if (!rule[k]) continue;
     LOG_DEBUG("  symbol #%u -> %p [%.*s]", k, (void*) rule[k], rule[k]->name.len, rule[k]->name.ptr);
+  }
+}
+
+void symbol_print_definition(Symbol* symbol, FILE* fp) {
+  fprintf(fp, "%c %u [%.*s] %u %u\n", FORMAT_SYMBOL, symbol->index, symbol->name.len, symbol->name.ptr, (unsigned) symbol->literal, (unsigned) symbol->defined);
+}
+
+void symbol_print_rules(Symbol* symbol, FILE* fp) {
+  for (unsigned r = 0; r < symbol->rule_count; ++r) {
+    fprintf(fp, "%c %u", FORMAT_RULE, symbol->index);
+    for (Symbol** rule = symbol->rules[r]; *rule; ++rule) {
+      fprintf(fp, " %d", (*rule)->index);
+    }
+    fprintf(fp, "\n");
   }
 }

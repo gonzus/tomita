@@ -40,7 +40,7 @@ int symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, Symbol** sy
   }
 
   // not found, must create and chain
-  s = symbol_create(name, literal);
+  s = symbol_create(name, literal, &symtab->counter);
   s->nxt_hash = symtab->table[h];
   symtab->table[h] = s;
   *sym = s;

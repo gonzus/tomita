@@ -2,14 +2,9 @@
 #include <stdio.h>
 #include "log.h"
 #include "mem.h"
+#include "util.h"
+#include "tomita.h"
 #include "grammar.h"
-
-#define GRAMMAR_COMMENT    '#'
-#define GRAMMAR_TERMINATOR ';'
-#define GRAMMAR_EQ_RULE    ':'
-#define GRAMMAR_EQ_TOKEN   '='
-#define GRAMMAR_START      '@'
-#define GRAMMAR_OR         '|'
 
 typedef enum { EndT, StartT, EqTokenT, EqRuleT, OrT, IdenT, TermT } TokenType;
 
@@ -29,11 +24,49 @@ static unsigned in_comment;
 static Symbol* lookup(Grammar* grammar, Slice name, unsigned literal);
 static unsigned input_flush(Slice text, unsigned pos, Token* tok);
 static unsigned input_token(Slice text, unsigned pos, Token* tok);
+static void grammar_reset(Grammar* grammar);
+static unsigned grammar_check(Grammar* grammar);
+static void pad(unsigned padding);
+static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals);
+static unsigned next_number(Slice line, unsigned pos, unsigned* number);
+static unsigned next_string(Slice line, unsigned pos, Slice* string);
+Symbol* find_symbol_by_index(Grammar* grammar, unsigned index);
 
-Grammar* grammar_create(Slice text) {
+Grammar* grammar_create(void) {
   Grammar* grammar = 0;
   MALLOC(Grammar, grammar);
+  buffer_build(&grammar->source);
   grammar->symtab = symtab_create();
+  return grammar;
+}
+
+void grammar_destroy(Grammar* grammar) {
+  symtab_destroy(grammar->symtab);
+  buffer_destroy(&grammar->source);
+  FREE(grammar);
+}
+
+void grammar_show(Grammar* grammar) {
+  printf("%c start\n", GRAMMAR_COMMENT);
+  printf("@ %.*s\n", grammar->start->name.len, grammar->start->name.ptr);
+
+  printf("\n%c rules\n", GRAMMAR_COMMENT);
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+    if (symbol->literal) continue;
+    show_symbol(grammar, symbol, 0);
+  }
+
+  printf("\n%c terminals\n", GRAMMAR_COMMENT);
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+    if (symbol->literal) continue;
+    show_symbol(grammar, symbol, 1);
+  }
+}
+
+unsigned grammar_build_from_text(Grammar* grammar, Slice source) {
+  grammar_reset(grammar);
+  buffer_append_slice(&grammar->source, source);
+  Slice text = buffer_slice(&grammar->source);
 
   int saw_start = 0;
   unsigned pos = 0;
@@ -135,15 +168,113 @@ Grammar* grammar_create(Slice text) {
     }
   }
 
-  return grammar;
+  return grammar_check(grammar);
 }
 
-void grammar_destroy(Grammar* grammar) {
-  symtab_destroy(grammar->symtab);
-  FREE(grammar);
+unsigned grammar_save_to_path(Grammar* grammar, const char* path) {
+  FILE* fp = 0;
+
+  do {
+    fp = fopen(path, "w");
+    if (!fp) break;
+
+    unsigned total_symbols = 0;
+    unsigned total_rules = 0;
+    for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+      total_symbols += 1;
+      total_rules += symbol->rule_count;
+    }
+
+    fprintf(fp, "%c grammar%c num_symbols num_rules start\n", GRAMMAR_COMMENT, GRAMMAR_EQ_RULE);
+    fprintf(fp, "%c %u %u %u\n", FORMAT_GRAMMAR, total_symbols, total_rules, grammar->start->index);
+    fprintf(fp, "%c symbols (%u)%c index name literal defined\n", GRAMMAR_COMMENT, total_symbols, GRAMMAR_EQ_RULE);
+    for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+      symbol_print_definition(symbol, fp);
+    }
+    fprintf(fp, "%c rules (%u)%c lhs_index rhs_index [rhs_index...]\n", GRAMMAR_COMMENT, total_rules, GRAMMAR_EQ_RULE);
+    for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+      symbol_print_rules(symbol, fp);
+    }
+  } while (0);
+  if (fp) fclose(fp);
+
+  return 0;
 }
 
-unsigned grammar_check(Grammar* grammar) {
+unsigned grammar_load_from_path(Grammar* grammar, const char* path) {
+  grammar_reset(grammar);
+
+  do {
+    unsigned len = slurp_file(path, &grammar->source);
+    if (!len) break;
+
+    unsigned total_symbols = 0;
+    unsigned total_rules = 0;
+    unsigned start_index = 0;
+    unsigned s_seq = 0;
+    Symbol* prev = 0;
+
+    Slice text = buffer_slice(&grammar->source);
+    SliceLookup lookup_lines = {0};
+    while (slice_tokenize_by_byte(text, '\n', &lookup_lines)) {
+      Slice line = slice_trim(lookup_lines.result);
+      LOG_DEBUG("read line [%.*s]", line.len, line.ptr);
+      char lead = line.ptr[0];
+      if (lead == GRAMMAR_COMMENT) continue;
+
+      unsigned pos = 1;
+      if (lead == FORMAT_GRAMMAR) {
+        pos = next_number(line, pos, &total_symbols);
+        pos = next_number(line, pos, &total_rules);
+        pos = next_number(line, pos, &start_index);
+        continue;
+      }
+      if (lead == FORMAT_SYMBOL) {
+        unsigned index = 0;
+        Slice name;
+        unsigned literal = 0;
+        unsigned defined = 0;
+        // unsigned rule_count = 0;
+        pos = next_number(line, pos, &index);
+        assert(index == s_seq++);
+        pos = next_string(line, pos, &name);
+        pos = next_number(line, pos, &literal);
+        pos = next_number(line, pos, &defined);
+        // pos = next_number(line, pos, &rule_count);
+        Symbol* sym = 0;
+        symtab_lookup(grammar->symtab, name, literal, &sym);
+        assert(index == sym->index);
+        sym->defined = defined;
+        // sym->rule_count = rule_count;
+        if (index == start_index) grammar->start = sym;
+        if (!grammar->first) grammar->first = sym;
+        grammar->last = sym;
+        if (prev) prev->nxt_list = sym;
+        prev = sym;
+        continue;
+      }
+      if (lead == FORMAT_RULE) {
+        unsigned lhs_index = 0;
+        pos = next_number(line, pos, &lhs_index);
+        Symbol* lhs = find_symbol_by_index(grammar, lhs_index);
+        assert(lhs);
+        sym_pos = sym_buf;
+        while (1) {
+          unsigned rhs_index = 0;
+          pos = next_number(line, pos, &rhs_index);
+          if (pos == 0) break;
+          *sym_pos++ = find_symbol_by_index(grammar, rhs_index);
+        }
+        *sym_pos++ = 0;
+        symbol_insert_rule(lhs, sym_buf, sym_pos);
+      }
+    }
+  } while (0);
+
+  return 0;
+}
+
+static unsigned grammar_check(Grammar* grammar) {
   unsigned total = 0;
   unsigned errors = 0;
   for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
@@ -166,7 +297,7 @@ static void pad(unsigned padding) {
 static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals) {
   if (!symbol->defined) {
     // this non-terminal was never the LHS of a rule
-    printf("%.*s: UNDEFINED;\n", symbol->name.len, symbol->name.ptr);
+    printf("%.*s%c UNDEFINED;\n", symbol->name.len, symbol->name.ptr, GRAMMAR_EQ_RULE);
     return;
   }
 
@@ -176,20 +307,20 @@ static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals) {
     printf("%.*s ", symbol->name.len, symbol->name.ptr);
     for (unsigned j = 0; j < symbol->rule_count; ++j) {
       if (j > 0) pad(padding);
-      printf("%c", j == 0 ? ':' : '|');
+      printf("%c", j == 0 ? GRAMMAR_EQ_RULE : GRAMMAR_OR);
       for (Symbol** rule = symbol->rules[j]; *rule; ++rule) {
         printf(" %.*s", (*rule)->name.len, (*rule)->name.ptr);
       }
       printf("\n");
     }
     pad(padding);
-    printf(";\n");
+    printf("%c\n", GRAMMAR_TERMINATOR);
     return;
   }
 
   if (!symbol->rule_count && terminals) {
     // this non-terminal is one of a list of tokens
-    printf("%.*s =", symbol->name.len, symbol->name.ptr);
+    printf("%.*s %c", symbol->name.len, symbol->name.ptr, GRAMMAR_EQ_TOKEN);
     for (Symbol* rhs = grammar->first; rhs != 0; rhs = rhs->nxt_list) {
       if (!rhs->literal) continue;
       for (unsigned j = 0; j < rhs->rule_count; ++j) {
@@ -198,24 +329,7 @@ static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals) {
         printf(" \"%.*s\"", rhs->name.len, rhs->name.ptr);
       }
     }
-    printf(";\n");
-  }
-}
-
-void grammar_show(Grammar* grammar) {
-  printf("# start\n");
-  printf("@ %.*s\n", grammar->start->name.len, grammar->start->name.ptr);
-
-  printf("\n# rules\n");
-  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
-    if (symbol->literal) continue;
-    show_symbol(grammar, symbol, 0);
-  }
-
-  printf("\n# terminals\n");
-  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
-    if (symbol->literal) continue;
-    show_symbol(grammar, symbol, 1);
+    printf("%c\n", GRAMMAR_TERMINATOR);
   }
 }
 
@@ -314,4 +428,62 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
 
   LOG_DEBUG("token type %u, value [%.*s]", tok->typ, tok->val.len, tok->val.ptr);
   return pos;
+}
+
+static void grammar_reset(Grammar* grammar) {
+  symtab_destroy(grammar->symtab);
+  grammar->symtab = symtab_create();
+  buffer_clear(&grammar->source);
+  grammar->start = grammar->first = grammar->last = 0;
+}
+
+static unsigned skip_spaces(Slice line, unsigned pos) {
+  while (pos < line.len && isspace(line.ptr[pos])) ++pos;
+  return pos;
+}
+
+static unsigned next_number(Slice line, unsigned pos, unsigned* number) {
+  *number = 0;
+  pos = skip_spaces(line, pos);
+  unsigned digits = 0;
+  while (pos < line.len && isdigit(line.ptr[pos])) {
+    *number *= 10;
+    *number += line.ptr[pos] - '0';
+    ++pos;
+    ++digits;
+  }
+  LOG_DEBUG("next number=%u, digits=%u, pos=%u", *number, digits, pos);
+  return digits > 0 ? pos : 0;
+}
+
+static unsigned next_string(Slice line, unsigned pos, Slice* string) {
+  string->ptr = 0;
+  string->len = 0;
+  pos = skip_spaces(line, pos);
+  while (pos < line.len) {
+    if (line.ptr[pos] == '[') {
+      ++pos;
+      if (pos < line.len) string->ptr = &line.ptr[pos];
+      continue;
+    }
+    if (line.ptr[pos] == ']') {
+      string->len = &line.ptr[pos] - string->ptr;
+      ++pos;
+      break;
+    }
+    ++pos;
+  }
+  LOG_DEBUG("next string=<%.*s>, pos=%u", string->len, string->ptr, pos);
+  return pos;
+}
+
+Symbol* find_symbol_by_index(Grammar* grammar, unsigned index) {
+  // TODO: make this more efficient
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+    if (symbol->index == index) {
+      LOG_DEBUG("found symbol with index %u: %p [%.*s]", index, symbol, symbol->name.len, symbol->name.ptr);
+      return symbol;
+    }
+  }
+  return 0;
 }

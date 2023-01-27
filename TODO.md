@@ -2,6 +2,10 @@
 
 ### Definitely 👍
 
+* WIP: use intermediate files (branch `using-files`):
+  * Unify `mem.[hc]` and `memory.[hc]`.
+  * Get rid of `console.[hc]`?
+  * Put more constants in `tomita.h` and **use them**.
 * Add unit tests: *yes* **yes** ***yes***.
 * Make multi-step work possible.  This is hampered today by the fact that a
   `parser` needs a `grammar` and a `forest` needs a `parser` (and a `grammar`).
