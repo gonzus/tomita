@@ -1,5 +1,4 @@
 #include <ctype.h>
-#include <stdio.h>
 #include "log.h"
 #include "mem.h"
 #include "util.h"
@@ -47,16 +46,16 @@ void grammar_destroy(Grammar* grammar) {
 }
 
 void grammar_show(Grammar* grammar) {
-  printf("%c start\n", GRAMMAR_COMMENT);
+  printf("%c start\n", FORMAT_COMMENT);
   printf("@ %.*s\n", grammar->start->name.len, grammar->start->name.ptr);
 
-  printf("\n%c rules\n", GRAMMAR_COMMENT);
+  printf("\n%c rules\n", FORMAT_COMMENT);
   for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
     if (symbol->literal) continue;
     show_symbol(grammar, symbol, 0);
   }
 
-  printf("\n%c terminals\n", GRAMMAR_COMMENT);
+  printf("\n%c terminals\n", FORMAT_COMMENT);
   for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
     if (symbol->literal) continue;
     show_symbol(grammar, symbol, 1);
@@ -171,41 +170,33 @@ unsigned grammar_build_from_text(Grammar* grammar, Slice source) {
   return grammar_check(grammar);
 }
 
-unsigned grammar_save_to_path(Grammar* grammar, const char* path) {
-  FILE* fp = 0;
+unsigned grammar_save_to_stream(Grammar* grammar, FILE* fp) {
+  unsigned total_symbols = 0;
+  unsigned total_rules = 0;
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+    total_symbols += 1;
+    total_rules += symbol->rule_count;
+  }
 
-  do {
-    fp = fopen(path, "w");
-    if (!fp) break;
-
-    unsigned total_symbols = 0;
-    unsigned total_rules = 0;
-    for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
-      total_symbols += 1;
-      total_rules += symbol->rule_count;
-    }
-
-    fprintf(fp, "%c grammar%c num_symbols num_rules start\n", GRAMMAR_COMMENT, GRAMMAR_EQ_RULE);
-    fprintf(fp, "%c %u %u %u\n", FORMAT_GRAMMAR, total_symbols, total_rules, grammar->start->index);
-    fprintf(fp, "%c symbols (%u)%c index name literal defined\n", GRAMMAR_COMMENT, total_symbols, GRAMMAR_EQ_RULE);
-    for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
-      symbol_print_definition(symbol, fp);
-    }
-    fprintf(fp, "%c rules (%u)%c lhs_index rhs_index [rhs_index...]\n", GRAMMAR_COMMENT, total_rules, GRAMMAR_EQ_RULE);
-    for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
-      symbol_print_rules(symbol, fp);
-    }
-  } while (0);
-  if (fp) fclose(fp);
+  fprintf(fp, "%c grammar%c num_symbols num_rules start\n", FORMAT_COMMENT, GRAMMAR_EQ_RULE);
+  fprintf(fp, "%c %u %u %u\n", FORMAT_GRAMMAR, total_symbols, total_rules, grammar->start->index);
+  fprintf(fp, "%c symbols (%u)%c index name literal defined\n", FORMAT_COMMENT, total_symbols, GRAMMAR_EQ_RULE);
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+    symbol_print_definition(symbol, fp);
+  }
+  fprintf(fp, "%c rules (%u)%c lhs [rhs...]\n", FORMAT_COMMENT, total_rules, GRAMMAR_EQ_RULE);
+  for (Symbol* symbol = grammar->first; symbol != 0; symbol = symbol->nxt_list) {
+    symbol_print_rules(symbol, fp);
+  }
 
   return 0;
 }
 
-unsigned grammar_load_from_path(Grammar* grammar, const char* path) {
+unsigned grammar_load_from_stream(Grammar* grammar, FILE* fp) {
   grammar_reset(grammar);
 
   do {
-    unsigned len = slurp_file(path, &grammar->source);
+    unsigned len = slurp_stream(fp, &grammar->source);
     if (!len) break;
 
     unsigned total_symbols = 0;
@@ -220,7 +211,7 @@ unsigned grammar_load_from_path(Grammar* grammar, const char* path) {
       Slice line = slice_trim(lookup_lines.result);
       LOG_DEBUG("read line [%.*s]", line.len, line.ptr);
       char lead = line.ptr[0];
-      if (lead == GRAMMAR_COMMENT) continue;
+      if (lead == FORMAT_COMMENT) continue;
 
       unsigned pos = 1;
       if (lead == FORMAT_GRAMMAR) {
@@ -374,7 +365,7 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
     }
 
     // one of these special single characters?
-    if (text.ptr[pos] == GRAMMAR_COMMENT) {
+    if (text.ptr[pos] == FORMAT_COMMENT) {
       in_comment = 1;
       ++pos;
       continue;

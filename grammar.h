@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include "slice.h"
 #include "buffer.h"
 #include "symtab.h"
@@ -30,9 +31,9 @@ unsigned grammar_build_from_text(Grammar* grammar, Slice source);
 // Load a grammar from a given path.
 // Format for file contents are "proprietary".
 // Return number of errors found (so 0 => ok)
-unsigned grammar_load_from_path(Grammar* grammar, const char* path);
+unsigned grammar_load_from_stream(Grammar* grammar, FILE* fp);
 
 // Save a grammar into a given path.
 // Format for file contents are "proprietary".
 // Return number of errors found (so 0 => ok)
-unsigned grammar_save_to_path(Grammar* grammar, const char* path);
+unsigned grammar_save_to_stream(Grammar* grammar, FILE* fp);

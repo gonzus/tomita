@@ -1,6 +1,6 @@
-#include <stdio.h>
 #include "log.h"
 #include "mem.h"
+#include "tomita.h"
 #include "parser.h"
 
 static void parser_build(Parser* parser);
@@ -177,6 +177,80 @@ void parser_show(Parser* parser) {
   printf("--------\n");
   printf("%u total shift/reduce conflicts\n", conflict_sr);
   printf("%u total reduce/reduce conflicts\n", conflict_rr);
+}
+
+static void symbol_print(Symbol* symbol, FILE* fp) {
+  if (symbol) {
+    fprintf(fp, "%u", symbol->index);
+  } else {
+    fprintf(fp, "~");
+  }
+}
+
+unsigned parser_save_to_stream(Parser* parser, FILE* fp) {
+  grammar_save_to_stream(parser->grammar, fp);
+
+  fprintf(fp, "%c parser: table_size\n", FORMAT_COMMENT);
+  fprintf(fp, "%c %u\n", FORMAT_PARSER, parser->table_cap);;
+  fprintf(fp, "%c state (%u): final num_sa num_rr num_er\n", FORMAT_COMMENT, parser->table_cap);
+  fprintf(fp, "%c   shift: symbol state\n", FORMAT_COMMENT);
+  fprintf(fp, "%c   reduce: lhs [rhs...]\n", FORMAT_COMMENT);
+  fprintf(fp, "%c   epsilon: symbol\n", FORMAT_COMMENT);
+  for (unsigned j = 0; j < parser->table_cap; ++j) {
+    struct State* state = &parser->state_table[j];
+    fprintf(fp, "%c %u %u %u %u\n", FORMAT_STATE, state->final, state->ss_cap, state->rr_cap, state->er_cap);
+    for (unsigned k = 0; k < state->ss_cap; ++k) {
+      struct Shift* shift = &state->ss_table[k];
+      fprintf(fp, "%c %u %u\n", FORMAT_SHIFT, shift->symbol->index, shift->state);
+    }
+
+    for (unsigned k = 0; k < state->rr_cap; ++k) {
+      struct Reduce* reduce = &state->rr_table[k];
+      fprintf(fp, "%c %u", FORMAT_REDUCE, reduce->lhs->index);
+      for (Symbol** r = reduce->rhs; *r; ++r) {
+        fprintf(fp, " %u", (*r)->index);
+      }
+      fprintf(fp, "\n");
+    }
+
+    for (unsigned k = 0; k < state->er_cap; ++k) {
+      Symbol* symbol = state->er_table[k];
+      fprintf(fp, "%c %u\n", FORMAT_EPSILON, symbol->index);
+    }
+  }
+
+#if 0
+  // TODO
+  // it seems we do not need items_table to parse?
+  // is it only used temporarily?
+  // if this is the case, then maybe stop storing it inside parser?
+  // (but balance that with the pain of passing it around all the time)
+  // (first play around with NOT restoring it from the file, and see if parsing still works)
+  // it seems to be used ONLY by state_add(), called from parser_build() => NOICE
+  fprintf(fp, "%c items (%u): pre size\n", FORMAT_COMMENT, parser->table_cap);
+  fprintf(fp, "%c   item: lhs [rhs...]\n", FORMAT_COMMENT);
+  for (unsigned j = 0; j < parser->table_cap; ++j) {
+    struct Items* items = &parser->items_table[j];
+    fprintf(fp, "%c ", FORMAT_ITEMS);
+    symbol_print(items->Pre, fp);
+    fprintf(fp, " %u\n", items->item_cap);
+
+    for (unsigned k = 0; k < items->item_cap; ++k) {
+      struct Item* item = items->item_table[k];
+      // if (!item->ref_cnt) continue;
+      fprintf(fp, "%c ", FORMAT_ITEM);
+      symbol_print(item->lhs, fp);
+      if (item->lhs) {
+        for (Symbol** rhs = item->rhs_table; rhs && *rhs; ++rhs) {
+          fprintf(fp, " %u", (*rhs)->index);
+        }
+      }
+      fprintf(fp, "\n");
+    }
+  }
+#endif
+
+  return 0;
 }
 
 static struct Item* item_make(Symbol* LHS, Symbol** RHS) {

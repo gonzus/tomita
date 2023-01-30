@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <sys/stat.h>
 #include "util.h"
 
@@ -9,6 +8,18 @@ unsigned slurp_file(const char* path, Buffer* b) {
     fp = fopen(path, "r");
     if (!fp) break;
 
+    len = slurp_stream(fp, b);
+  } while (0);
+  if (fp) {
+    fclose(fp);
+  }
+  b->len = len;
+  return len;
+}
+
+unsigned slurp_stream(FILE* fp, Buffer* b) {
+  unsigned len = 0;
+  do {
     struct stat st = {0};
     if (fstat(fileno(fp), &st)) break;
     len = st.st_size;
@@ -19,9 +30,6 @@ unsigned slurp_file(const char* path, Buffer* b) {
       break;
     }
   } while (0);
-  if (fp) {
-    fclose(fp);
-  }
   b->len = len;
   return len;
 }

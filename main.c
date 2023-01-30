@@ -125,10 +125,16 @@ int main(int argc, char **argv) {
     LOG_INFO("built grammar from source in %luus", timer_elapsed_us(&timer));
     if (opt_grammar) {
       grammar_show(grammar);
-      grammar_save_to_path(grammar, "/tmp/tomita.out");
+
+      FILE* fp = fopen("/tmp/tomita/grammar.out", "w+");
+      grammar_save_to_stream(grammar, fp);
+      rewind(fp);
+
       timer_start(&timer);
-      grammar_load_from_path(grammar, "/tmp/tomita.out");
+      grammar_load_from_stream(grammar, fp);
       timer_stop(&timer);
+      fclose(fp);
+
       LOG_INFO("loaded grammar from file in %luus", timer_elapsed_us(&timer));
     }
 
@@ -137,6 +143,10 @@ int main(int argc, char **argv) {
     LOG_INFO("created parser");
     if (opt_table) {
       parser_show(parser);
+
+      FILE* fp = fopen("/tmp/tomita/parser.out", "w+");
+      parser_save_to_stream(parser, fp);
+      fclose(fp);
     }
 
     forest = forest_create(parser);

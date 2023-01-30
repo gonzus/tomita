@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include "grammar.h"
 
 // a reference-counted Item
@@ -22,7 +23,7 @@ struct Items {
 // a Shift action
 struct Shift {
   Symbol* symbol;            // the symbol causing the shift
-  int state;                 // state to change to
+  unsigned state;            // state to change to
 };
 
 // a Reduce action
@@ -47,7 +48,7 @@ typedef struct Parser {
   Grammar* grammar;          // grammar used to generate parser
   struct State* state_table; // state table
   struct Items* items_table; // items table
-  unsigned table_cap;           // capacity of state and items tables
+  unsigned table_cap;        // capacity of state and items tables
 } Parser;
 
 
@@ -59,3 +60,8 @@ void parser_destroy(Parser* parser);
 
 // Print a parser in a human-readable format.
 void parser_show(Parser* parser);
+
+// Save a parser into a given path.
+// Format for file contents are "proprietary".
+// Return number of errors found (so 0 => ok)
+unsigned parser_save_to_stream(Parser* parser, FILE* fp);
