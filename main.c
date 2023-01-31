@@ -115,6 +115,7 @@ int main(int argc, char **argv) {
     timer_start(&timer);
     slurp_file(opt_grammar_file, &src);
     Slice raw = buffer_slice(&src);
+    LOG_INFO("read %u bytes from [%s]", raw.len, opt_grammar_file);
     Slice text_grammar = slice_trim(raw);
     unsigned errors = grammar_build_from_text(grammar, text_grammar);
     timer_stop(&timer);

@@ -3,6 +3,23 @@
 #include "tomita.h"
 #include "parser.h"
 
+// a reference-counted Item
+// TODO: for what purposes?
+struct Item {
+  Symbol* lhs;               // left-hand side symbol
+  Symbol** rhs_table;        // table of symbols in right-hand side
+  Symbol** rhs_pos;          //   pointer to "current" symbol
+  unsigned ref_cnt;          // reference count
+};
+
+// a list of Item pointers, with a Symbol
+// TODO: for what purposes?
+struct Items {
+  Symbol* Pre;               // TODO
+  struct Item** item_table;  // Item table
+  unsigned item_cap;         //   capacity of table
+};
+
 static void parser_build(Parser* parser);
 static struct Item* item_make(Symbol* LHS, Symbol** RHS);
 static struct Items* items_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, unsigned* XMax);
@@ -10,7 +27,7 @@ static void item_add(struct Items* Q, struct Item* It);
 static int item_compare(struct Item* A, struct Item* B);
 
 static void state_make(struct State* S, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new);
-static int state_add(Parser* parser, unsigned int Size, struct Item** List);
+static int state_add(Parser* parser, struct Items** items_table, unsigned int Size, struct Item** List);
 
 Parser* parser_create(Grammar* grammar) {
   Parser* parser = 0;
@@ -21,16 +38,6 @@ Parser* parser_create(Grammar* grammar) {
 }
 
 void parser_destroy(Parser* parser) {
-  if (parser->items_table) {
-    for (unsigned j = 0; j < parser->table_cap; ++j) {
-      struct Items* items = &parser->items_table[j];
-      for (unsigned k = 0; k < items->item_cap; ++k) {
-        UNREF(items->item_table[k]);
-      }
-      FREE(items->item_table);
-    }
-    FREE(parser->items_table);
-  }
   if (parser->state_table) {
     for (unsigned j = 0; j < parser->table_cap; ++j) {
       struct State* state = &parser->state_table[j];
@@ -45,10 +52,10 @@ void parser_destroy(Parser* parser) {
 
 static void parser_build(Parser* parser) {
   parser->state_table = 0;
-  parser->items_table = 0;
   parser->table_cap = 0;
 
   // Create initial state
+  struct Items* items_table = 0;
   Symbol** StartR = 0;
   MALLOC_N(Symbol*, StartR, 2);
   StartR[0] = parser->grammar->start;
@@ -58,7 +65,7 @@ static void parser_build(Parser* parser) {
   MALLOC(struct Item*, Its);
   Its[0] = item_make(0, StartR);
 
-  state_add(parser, 1, Its);
+  state_add(parser, &items_table, 1, Its);
 
   struct Items* XTab = 0;
   unsigned XMax = 0;
@@ -68,7 +75,7 @@ static void parser_build(Parser* parser) {
   unsigned Qs = 0;
 
   for (unsigned S = 0; S < parser->table_cap; ++S) {
-    struct Items* QS = &parser->items_table[S];
+    struct Items* QS = &items_table[S];
     if (QS->item_cap > QMax) {
       QMax = QS->item_cap;
       REALLOC(struct Item*, QBuf, QMax);
@@ -124,7 +131,7 @@ static void parser_build(Parser* parser) {
     for (unsigned X = 0; X < Xs; ++X) {
       struct Shift* Sh = &parser->state_table[S].ss_table[X];
       Sh->symbol = XTab[X].Pre;
-      Sh->state = state_add(parser, XTab[X].item_cap, XTab[X].item_table);
+      Sh->state = state_add(parser, &items_table, XTab[X].item_cap, XTab[X].item_table);
     }
     for (unsigned Q = 0; Q < Qs; ++Q) {
         UNREF(QBuf[Q]);
@@ -133,6 +140,17 @@ static void parser_build(Parser* parser) {
   FREE(XTab);
   FREE(QBuf);
   FREE(StartR);
+
+  if (items_table) {
+    for (unsigned j = 0; j < parser->table_cap; ++j) {
+      struct Items* items = &items_table[j];
+      for (unsigned k = 0; k < items->item_cap; ++k) {
+        UNREF(items->item_table[k]);
+      }
+      FREE(items->item_table);
+    }
+    FREE(items_table);
+  }
 }
 
 void parser_show(Parser* parser) {
@@ -179,14 +197,6 @@ void parser_show(Parser* parser) {
   printf("%u total reduce/reduce conflicts\n", conflict_rr);
 }
 
-static void symbol_print(Symbol* symbol, FILE* fp) {
-  if (symbol) {
-    fprintf(fp, "%u", symbol->index);
-  } else {
-    fprintf(fp, "~");
-  }
-}
-
 unsigned parser_save_to_stream(Parser* parser, FILE* fp) {
   grammar_save_to_stream(parser->grammar, fp);
 
@@ -219,37 +229,6 @@ unsigned parser_save_to_stream(Parser* parser, FILE* fp) {
     }
   }
 
-#if 0
-  // TODO
-  // it seems we do not need items_table to parse?
-  // is it only used temporarily?
-  // if this is the case, then maybe stop storing it inside parser?
-  // (but balance that with the pain of passing it around all the time)
-  // (first play around with NOT restoring it from the file, and see if parsing still works)
-  // it seems to be used ONLY by state_add(), called from parser_build() => NOICE
-  fprintf(fp, "%c items (%u): pre size\n", FORMAT_COMMENT, parser->table_cap);
-  fprintf(fp, "%c   item: lhs [rhs...]\n", FORMAT_COMMENT);
-  for (unsigned j = 0; j < parser->table_cap; ++j) {
-    struct Items* items = &parser->items_table[j];
-    fprintf(fp, "%c ", FORMAT_ITEMS);
-    symbol_print(items->Pre, fp);
-    fprintf(fp, " %u\n", items->item_cap);
-
-    for (unsigned k = 0; k < items->item_cap; ++k) {
-      struct Item* item = items->item_table[k];
-      // if (!item->ref_cnt) continue;
-      fprintf(fp, "%c ", FORMAT_ITEM);
-      symbol_print(item->lhs, fp);
-      if (item->lhs) {
-        for (Symbol** rhs = item->rhs_table; rhs && *rhs; ++rhs) {
-          fprintf(fp, " %u", (*rhs)->index);
-        }
-      }
-      fprintf(fp, "\n");
-    }
-  }
-#endif
-
   return 0;
 }
 
@@ -262,9 +241,9 @@ static struct Item* item_make(Symbol* LHS, Symbol** RHS) {
   return It;
 }
 
-static int state_add(Parser* parser, unsigned int Size, struct Item** List) {
+static int state_add(Parser* parser, struct Items** items_table, unsigned int Size, struct Item** List) {
   for (unsigned S = 0; S < parser->table_cap; ++S) {
-    struct Items* IS = &parser->items_table[S];
+    struct Items* IS = &(*items_table)[S];
     if (IS->item_cap != Size) continue;
     unsigned I = 0;
     for (I = 0; I < IS->item_cap; ++I) {
@@ -279,10 +258,10 @@ static int state_add(Parser* parser, unsigned int Size, struct Item** List) {
     }
   }
   TABLE_CHECK_GROW(parser->state_table, parser->table_cap, 8, struct State);
-  TABLE_CHECK_GROW(parser->items_table, parser->table_cap, 8, struct Items);
-  parser->items_table[parser->table_cap].Pre = 0;
-  parser->items_table[parser->table_cap].item_cap = Size;
-  parser->items_table[parser->table_cap].item_table = List;
+  TABLE_CHECK_GROW(*items_table, parser->table_cap, 8, struct Items);
+  (*items_table)[parser->table_cap].Pre = 0;
+  (*items_table)[parser->table_cap].item_cap = Size;
+  (*items_table)[parser->table_cap].item_table = List;
   return parser->table_cap++;
 }
 
