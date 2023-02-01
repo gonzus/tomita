@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdio.h>
 #include "buffer.h"
 #include "symtab.h"
 #include "grammar.h"
@@ -51,11 +50,11 @@ void parser_show(Parser* parser);
 unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar);
 
 // Load a parser from a slice.
-// Format for slice contents are "proprietary".
+// Format for loaded contents are "proprietary".
 // Return number of errors found (so 0 => ok)
 unsigned parser_load_from_slice(Parser* parser, Slice source);
 
-// Save a parser into a given path.
-// Format for file contents are "proprietary".
+// Save a parser into a buffer.
+// Format for saved contents are "proprietary".
 // Return number of errors found (so 0 => ok)
-unsigned parser_save_to_stream(Parser* parser, FILE* fp);
+unsigned parser_save_to_buffer(Parser* parser, Buffer* b);

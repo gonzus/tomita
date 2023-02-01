@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
 
     buffer_clear(&data);
     timer_start(&timer);
-    slurp_file(opt_grammar_file, &data);
+    file_slurp(opt_grammar_file, &data);
     timer_stop(&timer);
     if (data.len == 0) {
       LOG_INFO("could not read grammar file [%s]", opt_grammar_file);
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
     Slice raw = buffer_slice(&data);
     Slice text_grammar = slice_trim(raw);
     timer_start(&timer);
-    errors = grammar_build_from_text(grammar, text_grammar);
+    errors = grammar_compile_from_slice(grammar, text_grammar);
     timer_stop(&timer);
     if (errors) {
       LOG_INFO("grammar has %u errors", errors);
@@ -144,19 +144,11 @@ int main(int argc, char **argv) {
     if (opt_grammar) {
       grammar_show(grammar);
 
-      FILE* fp = fopen("/tmp/tomita/grammar.out", "w+");
-      if (!fp) {
-        LOG_INFO("could not create compiled grammar file");
-        break;
-      }
-
-      grammar_save_to_stream(grammar, fp);
-      rewind(fp);
       buffer_clear(&data);
-      slurp_stream(fp, &data);
-      fclose(fp);
-
+      grammar_save_to_buffer(grammar, &data);
       Slice compiled_grammar = buffer_slice(&data);
+      file_spew("/tmp/tomita/grammar.out", compiled_grammar);
+
       timer_start(&timer);
       errors = grammar_load_from_slice(grammar, compiled_grammar);
       timer_stop(&timer);
@@ -189,20 +181,11 @@ int main(int argc, char **argv) {
     if (opt_table) {
       parser_show(parser);
 
-      FILE* fp = fopen("/tmp/tomita/parser.out", "w+");
-      if (!fp) {
-        LOG_INFO("could not create compiled parser file");
-        break;
-      }
-
-      parser_save_to_stream(parser, fp);
-      rewind(fp);
       buffer_clear(&data);
-      slurp_stream(fp, &data);
-      fclose(fp);
-
-#if 1
+      parser_save_to_buffer(parser, &data);
       Slice compiled_parser = buffer_slice(&data);
+      file_spew("/tmp/tomita/parser.out", compiled_parser);
+
       timer_start(&timer);
       errors = parser_load_from_slice(parser, compiled_parser);
       timer_stop(&timer);
@@ -212,7 +195,6 @@ int main(int argc, char **argv) {
       }
       LOG_INFO("loaded compiled parser from file in %luus", timer_elapsed_us(&timer));
       parser_show(parser);
-#endif
     }
 
 #if 1

@@ -8,12 +8,20 @@
 
 // Read the contents of a file given by path, into a Buffer.
 // Return the number of bytes read.
-unsigned slurp_file(const char* path, Buffer* b);
+unsigned file_slurp(const char* path, Buffer* b);
 
-// Read the contents of a stream, into a Buffer.
-// Return the number of bytes read.
-unsigned slurp_stream(FILE* fp, Buffer* b);
+// Write the contents of a slice into a file given by path.
+// Return the number of bytes written.
+unsigned file_spew(const char* path, Slice s);
 
+// Parse a slice, starting at pos, skipping white space.
+// Return the updated pos.
 unsigned skip_spaces(Slice line, unsigned pos);
+
+// Parse a slice, starting at pos, for a natural number.
+// Return the updated pos.
 unsigned next_number(Slice line, unsigned pos, unsigned* number);
+
+// Parse a slice, starting at pos, for a string with format [XXXXX] (brackets included).
+// Return the updated pos.
 unsigned next_string(Slice line, unsigned pos, Slice* string);

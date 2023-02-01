@@ -58,7 +58,7 @@ void grammar_show(Grammar* grammar) {
   }
 }
 
-unsigned grammar_build_from_text(Grammar* grammar, Slice source) {
+unsigned grammar_compile_from_slice(Grammar* grammar, Slice source) {
   grammar_reset(grammar);
   buffer_append_slice(&grammar->source, source);
   Slice text = buffer_slice(&grammar->source);
@@ -202,10 +202,14 @@ unsigned grammar_load_from_slice(Grammar* grammar, Slice source) {
   return 0;
 }
 
-unsigned grammar_save_to_stream(Grammar* grammar, FILE* fp) {
-  unsigned errors = symtab_save_to_stream(grammar->symtab, fp);
-  fprintf(fp, "%c grammar: start\n", FORMAT_COMMENT);
-  fprintf(fp, "%c %u\n", FORMAT_GRAMMAR, grammar->start->index);
+unsigned grammar_save_to_buffer(Grammar* grammar, Buffer* b) {
+  unsigned errors = 0;
+  do {
+    errors = symtab_save_to_buffer(grammar->symtab, b);
+    if (errors) break;
+    buffer_format_print(b, "%c grammar: start\n", FORMAT_COMMENT);
+    buffer_format_print(b, "%c %u\n", FORMAT_GRAMMAR, grammar->start->index);
+  } while (0);
   return errors;
 }
 

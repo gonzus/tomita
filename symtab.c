@@ -148,7 +148,7 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
   return 0;
 }
 
-unsigned symtab_save_to_stream(SymTab* symtab, FILE* fp) {
+unsigned symtab_save_to_buffer(SymTab* symtab, Buffer* b) {
   unsigned total_symbols = 0;
   unsigned total_rules = 0;
   for (Symbol* symbol = symtab->first; symbol != 0; symbol = symbol->nxt_list) {
@@ -156,15 +156,15 @@ unsigned symtab_save_to_stream(SymTab* symtab, FILE* fp) {
     total_rules += symbol->rs_cap;
   }
 
-  fprintf(fp, "%c symtab: num_symbols num_rules\n", FORMAT_COMMENT);
-  fprintf(fp, "%c %u %u\n", FORMAT_SYMTAB, total_symbols, total_rules);
-  fprintf(fp, "%c symbols (%u): index name literal defined\n", FORMAT_COMMENT, total_symbols);
+  buffer_format_print(b, "%c symtab: num_symbols num_rules\n", FORMAT_COMMENT);
+  buffer_format_print(b, "%c %u %u\n", FORMAT_SYMTAB, total_symbols, total_rules);
+  buffer_format_print(b, "%c symbols (%u): index name literal defined\n", FORMAT_COMMENT, total_symbols);
   for (Symbol* symbol = symtab->first; symbol != 0; symbol = symbol->nxt_list) {
-    symbol_save_definition(symbol, fp);
+    symbol_save_definition(symbol, b);
   }
-  fprintf(fp, "%c rules (%u): index lhs [rhs...]\n", FORMAT_COMMENT, total_rules);
+  buffer_format_print(b, "%c rules (%u): index lhs [rhs...]\n", FORMAT_COMMENT, total_rules);
   for (Symbol* symbol = symtab->first; symbol != 0; symbol = symbol->nxt_list) {
-    symbol_save_rules(symbol, fp);
+    symbol_save_rules(symbol, b);
   }
 
   return 0;

@@ -298,33 +298,37 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
   return 0;
 }
 
-unsigned parser_save_to_stream(Parser* parser, FILE* fp) {
-  unsigned errors = symtab_save_to_stream(parser->symtab, fp);
+unsigned parser_save_to_buffer(Parser* parser, Buffer* b) {
+  unsigned errors = 0;
+  do {
+    errors = symtab_save_to_buffer(parser->symtab, b);
+    if (errors) break;
 
-  fprintf(fp, "%c parser: table_size\n", FORMAT_COMMENT);
-  fprintf(fp, "%c %u\n", FORMAT_PARSER, parser->state_cap);;
-  fprintf(fp, "%c state (%u): final num_sa num_rr num_er\n", FORMAT_COMMENT, parser->state_cap);
-  fprintf(fp, "%c   shift: symbol state\n", FORMAT_COMMENT);
-  fprintf(fp, "%c   reduce: lhs rule\n", FORMAT_COMMENT);
-  fprintf(fp, "%c   epsilon: symbol\n", FORMAT_COMMENT);
-  for (unsigned j = 0; j < parser->state_cap; ++j) {
-    struct State* state = &parser->state_table[j];
-    fprintf(fp, "%c %u %u %u %u\n", FORMAT_STATE, state->final, state->ss_cap, state->rr_cap, state->er_cap);
-    for (unsigned k = 0; k < state->ss_cap; ++k) {
-      struct Shift* shift = &state->ss_table[k];
-      fprintf(fp, "%c %u %u\n", FORMAT_SHIFT, shift->symbol->index, shift->state);
-    }
+    buffer_format_print(b, "%c parser: table_size\n", FORMAT_COMMENT);
+    buffer_format_print(b, "%c %u\n", FORMAT_PARSER, parser->state_cap);;
+    buffer_format_print(b, "%c state (%u): final num_sa num_rr num_er\n", FORMAT_COMMENT, parser->state_cap);
+    buffer_format_print(b, "%c   shift: symbol state\n", FORMAT_COMMENT);
+    buffer_format_print(b, "%c   reduce: lhs rule\n", FORMAT_COMMENT);
+    buffer_format_print(b, "%c   epsilon: symbol\n", FORMAT_COMMENT);
+    for (unsigned j = 0; j < parser->state_cap; ++j) {
+      struct State* state = &parser->state_table[j];
+      buffer_format_print(b, "%c %u %u %u %u\n", FORMAT_STATE, state->final, state->ss_cap, state->rr_cap, state->er_cap);
+      for (unsigned k = 0; k < state->ss_cap; ++k) {
+        struct Shift* shift = &state->ss_table[k];
+        buffer_format_print(b, "%c %u %u\n", FORMAT_SHIFT, shift->symbol->index, shift->state);
+      }
 
-    for (unsigned k = 0; k < state->rr_cap; ++k) {
-      struct Reduce* reduce = &state->rr_table[k];
-      fprintf(fp, "%c %u %u\n", FORMAT_REDUCE, reduce->lhs->index, reduce->rs.index);
-    }
+      for (unsigned k = 0; k < state->rr_cap; ++k) {
+        struct Reduce* reduce = &state->rr_table[k];
+        buffer_format_print(b, "%c %u %u\n", FORMAT_REDUCE, reduce->lhs->index, reduce->rs.index);
+      }
 
-    for (unsigned k = 0; k < state->er_cap; ++k) {
-      Symbol* symbol = state->er_table[k];
-      fprintf(fp, "%c %u\n", FORMAT_EPSILON, symbol->index);
+      for (unsigned k = 0; k < state->er_cap; ++k) {
+        Symbol* symbol = state->er_table[k];
+        buffer_format_print(b, "%c %u\n", FORMAT_EPSILON, symbol->index);
+      }
     }
-  }
+  } while (0);
 
   return errors;
 }

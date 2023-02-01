@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdio.h>
 #include "slice.h"
 #include "buffer.h"
 #include "symtab.h"
@@ -21,17 +20,17 @@ void grammar_destroy(Grammar* grammar);
 // Print a grammar in a human-readable format.
 void grammar_show(Grammar* grammar);
 
-// Build a grammar from a given textual definition.
-// Format for text is (almost) yacc-compatible.
+// Compile a grammar from a given textual source.
+// Format for source is (almost) yacc-compatible.
 // Return number of errors found (so 0 => ok)
-unsigned grammar_build_from_text(Grammar* grammar, Slice source);
+unsigned grammar_compile_from_slice(Grammar* grammar, Slice source);
 
-// Load a grammar from a slice.
-// Format for slice contents are "proprietary".
+// Load a compiled grammar from a slice.
+// Format for loaded contents are "proprietary".
 // Return number of errors found (so 0 => ok)
 unsigned grammar_load_from_slice(Grammar* grammar, Slice source);
 
-// Save a grammar into a given path.
-// Format for file contents are "proprietary".
+// Save a compiled grammar into a buffer.
+// Format for saved contents are "proprietary".
 // Return number of errors found (so 0 => ok)
-unsigned grammar_save_to_stream(Grammar* grammar, FILE* fp);
+unsigned grammar_save_to_buffer(Grammar* grammar, Buffer* b);

@@ -61,22 +61,22 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP, unsigned
   }
 }
 
-void symbol_save_definition(Symbol* symbol, FILE* fp) {
-  fprintf(fp, "%c %u [%.*s] %u %u\n", FORMAT_SYMBOL, symbol->index, symbol->name.len, symbol->name.ptr, (unsigned) symbol->literal, (unsigned) symbol->defined);
+void symbol_save_definition(Symbol* symbol, Buffer* b) {
+  buffer_format_print(b, "%c %u [%.*s] %u %u\n", FORMAT_SYMBOL, symbol->index, symbol->name.len, symbol->name.ptr, (unsigned) symbol->literal, (unsigned) symbol->defined);
 }
 
-void symbol_save_rules(Symbol* symbol, FILE* fp) {
+void symbol_save_rules(Symbol* symbol, Buffer* b) {
   LOG_DEBUG("rulesets for symbol %p index %u [%.*s]", symbol, symbol->index, symbol->name.len, symbol->name.ptr);
   for (unsigned r = 0; r < symbol->rs_cap; ++r) {
     RuleSet* rs = &symbol->rs_table[r];
     LOG_DEBUG("  ruleset %u index %u at %p", r, rs->index, rs->rules);
-    fprintf(fp, "%c %u %u", FORMAT_RULE, rs->index, symbol->index);
+    buffer_format_print(b, "%c %u %u", FORMAT_RULE, rs->index, symbol->index);
     for (Symbol** rules = rs->rules; *rules; ++rules) {
       Symbol* rhs = *rules;
       LOG_DEBUG("    symbol %u [%.*s]", rhs->index, rhs->name.len, rhs->name.ptr);
-      fprintf(fp, " %d", rhs->index);
+      buffer_format_print(b, " %u", rhs->index);
     }
-    fprintf(fp, "\n");
+    buffer_format_print(b, "\n");
   }
 }
 

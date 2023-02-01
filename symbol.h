@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include "buffer.h"
 #include "slice.h"
 
 typedef struct RuleSet {
@@ -34,6 +34,11 @@ void symbol_destroy(Symbol* symbol);
 // Insert the right-hand side rule that defines a (non-terminal) symbol.
 void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP, unsigned* counter, unsigned index);
 
-void symbol_save_definition(Symbol* symbol, FILE* fp);
-void symbol_save_rules(Symbol* symbol, FILE* fp);
+// Save the symbol's definitions into a buffer.
+void symbol_save_definition(Symbol* symbol, Buffer* b);
+
+// Save the symbol's rules into a buffer.
+void symbol_save_rules(Symbol* symbol, Buffer* b);
+
+// Find a ruleset for a symbol given its index.
 RuleSet* find_ruleset_by_index(Symbol* symbol, unsigned index);

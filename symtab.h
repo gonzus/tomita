@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include "buffer.h"
 #include "symbol.h"
 
 // TODO: make hash table growable?
@@ -35,7 +35,7 @@ Symbol* find_symbol_by_index(SymTab* symtab, unsigned index);
 // Return number of errors found (so 0 => ok)
 unsigned symtab_load_from_slice(SymTab* symtab, Slice* text);
 
-// Save a symbol table into a given path.
-// Format for file contents are "proprietary".
+// Save a symbol table into a buffer.
+// Format for saved contents are "proprietary".
 // Return number of errors found (so 0 => ok)
-unsigned symtab_save_to_stream(SymTab* symtab, FILE* fp);
+unsigned symtab_save_to_buffer(SymTab* symtab, Buffer* b);
