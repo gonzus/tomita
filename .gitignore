@@ -1,2 +1,7 @@
-*.o
+**/*.o
+**/*.a
+**/*.dSYM
 tom
+
+tmp/
+t/grammar
