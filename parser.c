@@ -1,4 +1,3 @@
-#include <limits.h>
 #include "log.h"
 #include "mem.h"
 #include "util.h"

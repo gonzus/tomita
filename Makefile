@@ -2,10 +2,10 @@
 
 NAME = tomita
 
-CC = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
-LD = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
-# CC = cc
-# LD = cc
+# CC = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
+# LD = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
+CC = cc
+LD = cc
 
 AFLAGS += -std=c11
 AFLAGS += -g
@@ -42,7 +42,7 @@ C_SRC_LIB = \
 	timer.c \
 	util.c \
 
-LILBS =
+LIBS =
 
 C_OBJ_LIB = $(C_SRC_LIB:.c=.o)
 

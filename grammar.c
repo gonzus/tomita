@@ -223,7 +223,8 @@ static unsigned grammar_check(Grammar* grammar) {
     LOG_WARN("symbol [%.*s] undefined.\n", symbol->name.len, symbol->name.ptr);
     ++errors;
   }
-  LOG_INFO("checked grammar: %u total symbols, %u errors", total, errors);
+  LOG_DEBUG("checked grammar: %u total symbols, %u errors", total, errors);
+  UNUSED(total);
   return errors;
 }
 
@@ -348,6 +349,17 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
       tok->typ = IdenT;
       tok->val = slice_from_memory(text.ptr + beg, pos - beg);
       if (text.ptr[pos] == '"') ++pos; // skip closing "
+      break;
+    }
+
+    // a single-quoted identifier?
+    if (text.ptr[pos] == '\'') {
+      if (text.ptr[pos] == '\'') ++pos; // skip opening '
+      unsigned beg = pos;
+      while (pos < text.len && text.ptr[pos] != '\'') ++pos;
+      tok->typ = IdenT;
+      tok->val = slice_from_memory(text.ptr + beg, pos - beg);
+      if (text.ptr[pos] == '\'') ++pos; // skip closing "
       break;
     }
   } while (1);

@@ -73,6 +73,7 @@ Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal) {
 
 unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
   symtab_clear(symtab);
+  unsigned used = 0;
 
   do {
     unsigned total_symbols = 0;
@@ -86,9 +87,11 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
       LOG_DEBUG("read line [%.*s]", line.len, line.ptr);
       char lead = line.ptr[0];
       unsigned pos = 0;
-      if (lead == FORMAT_COMMENT) continue;
-      ++pos;
+      if (lead == FORMAT_COMMENT) {
+        continue;
+      }
 
+      ++pos;
       if (lead == FORMAT_SYMTAB) {
         pos = next_number(line, pos, &total_symbols);
         pos = next_number(line, pos, &total_rules);
@@ -137,12 +140,13 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
         continue;
       }
       // found something else
-      unsigned used = line.ptr - text->ptr;
-      LOG_DEBUG("SYMTAB found other [%c] used=%u", lead, used);
-      text->ptr += used;
-      text->len -= used;
+      LOG_DEBUG("SYMTAB found other [%c]", lead);
+      used = line.ptr - text->ptr;
       break;
     }
+    if (!used) used = text->len;
+    text->ptr += used;
+    text->len -= used;
   } while (0);
 
   return 0;
