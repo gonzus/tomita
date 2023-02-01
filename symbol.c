@@ -9,26 +9,30 @@ Symbol* symbol_create(Slice name, unsigned literal, unsigned* counter) {
   symbol->name = name;
   symbol->literal = literal;
   symbol->index = (*counter)++;
-  LOG_DEBUG("created symbol #%d [%.*s]", symbol->index, symbol->name.len, symbol->name.ptr);
+  LOG_DEBUG("created symbol %p index %u [%.*s] %u", symbol, symbol->index, symbol->name.len, symbol->name.ptr, symbol->rs_cap);
   return symbol;
 }
 
 void symbol_destroy(Symbol* symbol) {
-  for (unsigned j = 0; j < symbol->rule_count; ++j) {
-    FREE(symbol->rules[j]);
+  for (unsigned j = 0; j < symbol->rs_cap; ++j) {
+    FREE(symbol->rs_table[j].rules);
   }
-  FREE(symbol->rules);
+  FREE(symbol->rs_table);
   FREE(symbol);
 }
 
-void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {
-  LOG_DEBUG("adding rule #%u for symbol %p [%.*s]", symbol->rule_count, (void*) symbol, symbol->name.len, symbol->name.ptr);
+void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP, unsigned* counter, unsigned index) {
+  if (counter) {
+    index = (*counter)++;
+  }
+  unsigned size = SymP - SymBuf;
+  LOG_DEBUG("adding ruleset #%u index %u with %u rhs symbols for symbol %p [%.*s]", symbol->rs_cap, index, size, (void*) symbol, symbol->name.len, symbol->name.ptr);
   unsigned int k = 0;
-  for (k = 0; k < symbol->rule_count; ++k) {
+  for (k = 0; k < symbol->rs_cap; ++k) {
     unsigned diff = 0;
     Symbol** A = 0;
     Symbol** B = 0;
-    for (A = SymBuf, B = symbol->rules[k]; !diff && *A && *B; ++A, ++B) {
+    for (A = SymBuf, B = symbol->rs_table[k].rules; !diff && *A && *B; ++A, ++B) {
       diff = (*A)->index - (*B)->index;
     }
     if (diff < 0) continue;
@@ -38,34 +42,49 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {
     }
   }
 
-  // need more room and to shift later rules
-  TABLE_CHECK_GROW(symbol->rules, symbol->rule_count, 8, Symbol**);
-  LOG_DEBUG("Growing, current %u, k=%u", symbol->rule_count, k);
-  for (unsigned j = symbol->rule_count++; j > k; --j) {
-    symbol->rules[j] = symbol->rules[j - 1];
+  // need more room and to shift later rulesets
+  TABLE_CHECK_GROW(symbol->rs_table, symbol->rs_cap, 8, RuleSet);
+  LOG_DEBUG("Growing rulesets, current %u, k=%u", symbol->rs_cap, k);
+  for (unsigned j = symbol->rs_cap++; j > k; --j) {
+    symbol->rs_table[j] = symbol->rs_table[j - 1];
   }
 
-  unsigned size = SymP - SymBuf;
-  Symbol** rule = 0;
-  MALLOC_N(Symbol*, rule, size);
-  symbol->rules[k] = rule;
+  symbol->rs_table[k].index = index;
+  Symbol** rules = 0;
+  MALLOC_N(Symbol*, rules, size);
+  symbol->rs_table[k].rules = rules;
+  LOG_DEBUG("SYMBOL %p index %u ruleset %u at %p with index %u", symbol, symbol->index, k, rules, index);
   for (k = 0; k < size; ++k) {
-    rule[k] = SymBuf[k];
-    if (!rule[k]) continue;
-    LOG_DEBUG("  symbol #%u -> %p [%.*s]", k, (void*) rule[k], rule[k]->name.len, rule[k]->name.ptr);
+    rules[k] = SymBuf[k];
+    if (!rules[k]) continue;
+    LOG_DEBUG("  symbol #%u -> %p [%.*s]", k, (void*) rules[k], rules[k]->name.len, rules[k]->name.ptr);
   }
 }
 
-void symbol_print_definition(Symbol* symbol, FILE* fp) {
+void symbol_save_definition(Symbol* symbol, FILE* fp) {
   fprintf(fp, "%c %u [%.*s] %u %u\n", FORMAT_SYMBOL, symbol->index, symbol->name.len, symbol->name.ptr, (unsigned) symbol->literal, (unsigned) symbol->defined);
 }
 
-void symbol_print_rules(Symbol* symbol, FILE* fp) {
-  for (unsigned r = 0; r < symbol->rule_count; ++r) {
-    fprintf(fp, "%c %u", FORMAT_RULE, symbol->index);
-    for (Symbol** rule = symbol->rules[r]; *rule; ++rule) {
-      fprintf(fp, " %d", (*rule)->index);
+void symbol_save_rules(Symbol* symbol, FILE* fp) {
+  LOG_DEBUG("rulesets for symbol %p index %u [%.*s]", symbol, symbol->index, symbol->name.len, symbol->name.ptr);
+  for (unsigned r = 0; r < symbol->rs_cap; ++r) {
+    RuleSet* rs = &symbol->rs_table[r];
+    LOG_DEBUG("  ruleset %u index %u at %p", r, rs->index, rs->rules);
+    fprintf(fp, "%c %u %u", FORMAT_RULE, rs->index, symbol->index);
+    for (Symbol** rules = rs->rules; *rules; ++rules) {
+      Symbol* rhs = *rules;
+      LOG_DEBUG("    symbol %u [%.*s]", rhs->index, rhs->name.len, rhs->name.ptr);
+      fprintf(fp, " %d", rhs->index);
     }
-    fprintf(fp, "  # %u\n", r);
+    fprintf(fp, "\n");
   }
+}
+
+RuleSet* find_ruleset_by_index(Symbol* symbol, unsigned index) {
+  // TODO: make this more efficient
+  for (unsigned j = 0; j < symbol->rs_cap; ++j) {
+    RuleSet* rs = &symbol->rs_table[j];
+    if (rs->index == index) return rs;
+  }
+  return 0;
 }

@@ -24,7 +24,6 @@ void symtab_destroy(SymTab* symtab) {
 }
 
 void symtab_clear(SymTab* symtab) {
-  LOG_INFO("SYMTAB CLEAR");
   for (unsigned h = 0; h < HASH_MAX; ++h) {
     for (Symbol* sym = symtab->table[h]; sym != 0; ) {
       Symbol* tmp = sym;
@@ -34,7 +33,8 @@ void symtab_clear(SymTab* symtab) {
     symtab->table[h] = 0;
   }
   symtab->first = symtab->last = 0;
-  symtab->counter = 0;
+  symtab->symbol_counter = 0;
+  symtab->rules_counter = 0;
 }
 
 // TODO: (as in every project) use better hash function?
@@ -58,7 +58,7 @@ Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal) {
   }
 
   // not found, must create and chain
-  s = symbol_create(name, literal, &symtab->counter);
+  s = symbol_create(name, literal, &symtab->symbol_counter);
   s->nxt_hash = symtab->table[h];
   symtab->table[h] = s;
   if (symtab->first) {
@@ -111,18 +111,18 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
         LOG_DEBUG("loaded symbol: index=%u, name=[%.*s], literal=%u, defined=%u", index, name.len, name.ptr, literal, defined);
         assert(index == sym->index);
         sym->defined = defined;
-        if (!symtab->first) symtab->first = sym;
-        symtab->last = sym;
         if (prev) prev->nxt_list = sym;
         prev = sym;
         continue;
       }
       if (lead == FORMAT_RULE) {
         unsigned lhs_index = 0;
+        unsigned rs_index = 0;
+        pos = next_number(line, pos, &rs_index);
         pos = next_number(line, pos, &lhs_index);
+        LOG_DEBUG("loaded rule: lhs=%u, rs=%u", lhs_index, rs_index);
         Symbol* lhs = find_symbol_by_index(symtab, lhs_index);
         assert(lhs);
-        LOG_DEBUG("loaded rule: lhs=%u", lhs_index);
         sym_pos = sym_buf;
         while (1) {
           unsigned rhs_index = 0;
@@ -132,12 +132,13 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
           *sym_pos++ = find_symbol_by_index(symtab, rhs_index);
         }
         *sym_pos++ = 0;
-        symbol_insert_rule(lhs, sym_buf, sym_pos);
+        symbol_insert_rule(lhs, sym_buf, sym_pos, 0, rs_index);
+        ++symtab->rules_counter;
         continue;
       }
       // found something else
       unsigned used = line.ptr - text->ptr;
-      LOG_INFO("SYMTAB found other [%c] used=%u", lead, used);
+      LOG_DEBUG("SYMTAB found other [%c] used=%u", lead, used);
       text->ptr += used;
       text->len -= used;
       break;
@@ -152,18 +153,18 @@ unsigned symtab_save_to_stream(SymTab* symtab, FILE* fp) {
   unsigned total_rules = 0;
   for (Symbol* symbol = symtab->first; symbol != 0; symbol = symbol->nxt_list) {
     total_symbols += 1;
-    total_rules += symbol->rule_count;
+    total_rules += symbol->rs_cap;
   }
 
   fprintf(fp, "%c symtab: num_symbols num_rules\n", FORMAT_COMMENT);
   fprintf(fp, "%c %u %u\n", FORMAT_SYMTAB, total_symbols, total_rules);
-  fprintf(fp, "%c symbols (%u)%c index name literal defined\n", FORMAT_COMMENT, total_symbols, GRAMMAR_EQ_RULE);
+  fprintf(fp, "%c symbols (%u): index name literal defined\n", FORMAT_COMMENT, total_symbols);
   for (Symbol* symbol = symtab->first; symbol != 0; symbol = symbol->nxt_list) {
-    symbol_print_definition(symbol, fp);
+    symbol_save_definition(symbol, fp);
   }
-  fprintf(fp, "%c rules (%u)%c lhs [rhs...]\n", FORMAT_COMMENT, total_rules, GRAMMAR_EQ_RULE);
+  fprintf(fp, "%c rules (%u): index lhs [rhs...]\n", FORMAT_COMMENT, total_rules);
   for (Symbol* symbol = symtab->first; symbol != 0; symbol = symbol->nxt_list) {
-    symbol_print_rules(symbol, fp);
+    symbol_save_rules(symbol, fp);
   }
 
   return 0;

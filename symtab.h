@@ -8,7 +8,8 @@
 
 // a symbol (hash) table
 typedef struct SymTab {
-  unsigned counter;          // to create sequential indexes for symbols
+  unsigned symbol_counter;   // to create sequential indexes for symbols
+  unsigned rules_counter;    // to create sequential indexes for rulesets
   Symbol* table[HASH_MAX];   // the actual table
   Symbol* first;             // the first symbol seen
   Symbol* last;              // the last symbol seen

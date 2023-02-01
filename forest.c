@@ -236,17 +236,17 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     unsigned VP = forest->vert_pos;
     forest->vert_pos = forest->vert_cap;
     forest->node_pos = forest->node_cap;
-    if (Word->rule_count == 0) { /* Treat the word as a new word. */
+    if (Word->rs_cap == 0) { /* Treat the word as a new word. */
       for (Symbol* S = forest->parser->symtab->first; S != 0; S = S->nxt_list) {
-        if (S->rule_count > 0) continue;
+        if (S->rs_cap > 0) continue;
         unsigned N = subnode_add(forest, S, P);
         for (unsigned W = VP; W < forest->vert_pos; ++W) {
           AddN(forest, N, W);
         }
       }
     } else {
-      for (unsigned C = 0; C < Word->rule_count; ++C) {
-        unsigned N = subnode_add(forest, *Word->rules[C], P);
+      for (unsigned C = 0; C < Word->rs_cap; ++C) {
+        unsigned N = subnode_add(forest, *Word->rs_table[C].rules, P);
         for (unsigned W = VP; W < forest->vert_pos; ++W) {
           AddN(forest, N, W);
         }
@@ -398,7 +398,7 @@ static void AddN(Forest* forest, unsigned N, unsigned W) {
     Z1->List = 0;
     for (R = 0; R < S->rr_cap; ++R) {
       Rd = &S->rr_table[R];
-      AddRRed(forest, Z1, Rd->lhs, Rd->rhs);
+      AddRRed(forest, Z1, Rd->lhs, Rd->rs.rules);
     }
   }
   for (I = 0; I < Z1->Size; ++I) {

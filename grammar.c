@@ -120,7 +120,7 @@ unsigned grammar_build_from_text(Grammar* grammar, Slice source) {
           sym_pos = sym_buf;
           *sym_pos++ = lhs;
           *sym_pos++ = 0;
-          symbol_insert_rule(symtab_lookup(grammar->symtab, lhs->name, 1), sym_buf, sym_pos);
+          symbol_insert_rule(symtab_lookup(grammar->symtab, lhs->name, 1), sym_buf, sym_pos, &grammar->symtab->rules_counter, 0);
           break;
 
         case EqTokenT:
@@ -128,7 +128,7 @@ unsigned grammar_build_from_text(Grammar* grammar, Slice source) {
           *sym_pos++ = lhs;
           *sym_pos++ = 0;
           for (pos = input_token(text, pos, &tok); tok.typ == IdenT; pos = input_token(text, pos, &tok)) {
-            symbol_insert_rule(symtab_lookup(grammar->symtab, tok.val, 1), sym_buf, sym_pos);
+            symbol_insert_rule(symtab_lookup(grammar->symtab, tok.val, 1), sym_buf, sym_pos, &grammar->symtab->rules_counter, 0);
           }
           break;
 
@@ -143,7 +143,7 @@ unsigned grammar_build_from_text(Grammar* grammar, Slice source) {
               exit(1);
             }
             *sym_pos++ = 0;
-            symbol_insert_rule(lhs, sym_buf, sym_pos);
+            symbol_insert_rule(lhs, sym_buf, sym_pos, &grammar->symtab->rules_counter, 0);
           } while (tok.typ == OrT);
           break;
 
@@ -189,7 +189,7 @@ unsigned grammar_load_from_slice(Grammar* grammar, Slice source) {
         Symbol* start = find_symbol_by_index(grammar->symtab, index);
         assert(start);
         grammar->start = start;
-        LOG_INFO("loaded grammar: start=%u", index);
+        LOG_DEBUG("loaded grammar: start=%u", index);
         continue;
       }
       // found something else
@@ -236,14 +236,15 @@ static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals) {
     return;
   }
 
-  if (symbol->rule_count && !terminals) {
+  if (symbol->rs_cap && !terminals) {
     // this is a proper non-terminal with rules
     int padding = symbol->name.len + 1;
     printf("%.*s ", symbol->name.len, symbol->name.ptr);
-    for (unsigned j = 0; j < symbol->rule_count; ++j) {
+    for (unsigned j = 0; j < symbol->rs_cap; ++j) {
+      RuleSet* rs = &symbol->rs_table[j];
       if (j > 0) pad(padding);
       printf("%c", j == 0 ? GRAMMAR_EQ_RULE : GRAMMAR_OR);
-      for (Symbol** rule = symbol->rules[j]; *rule; ++rule) {
+      for (Symbol** rule = rs->rules; *rule; ++rule) {
         printf(" %.*s", (*rule)->name.len, (*rule)->name.ptr);
       }
       printf("\n");
@@ -253,13 +254,13 @@ static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals) {
     return;
   }
 
-  if (!symbol->rule_count && terminals) {
+  if (!symbol->rs_cap && terminals) {
     // this non-terminal is one of a list of tokens
     printf("%.*s %c", symbol->name.len, symbol->name.ptr, GRAMMAR_EQ_TOKEN);
     for (Symbol* rhs = grammar->symtab->first; rhs != 0; rhs = rhs->nxt_list) {
       if (!rhs->literal) continue;
-      for (unsigned j = 0; j < rhs->rule_count; ++j) {
-        Symbol* back = *rhs->rules[j];
+      for (unsigned j = 0; j < rhs->rs_cap; ++j) {
+        Symbol* back = *rhs->rs_table[j].rules;
         if (!slice_equal(symbol->name, back->name)) continue;
         printf(" \"%.*s\"", rhs->name.len, rhs->name.ptr);
       }

@@ -5,17 +5,19 @@
 #include "tomita.h"
 #include "parser.h"
 
-// a reference-counted Item
-// TODO: for what purposes?
+// a reference-counted Item containing:
+//   a LHS symbol
+//   a RHS ruleset
+//   a pointer to the current symbol in the ruleset being considered
 struct Item {
   Symbol* lhs;               // left-hand side symbol
-  Symbol** rhs_table;        // table of symbols in right-hand side
-  Symbol** rhs_pos;          //   pointer to "current" symbol
+  RuleSet rs;                // ruleset in right-hand side
+  Symbol** rhs_pos;          // pointer to "current" symbol
   unsigned ref_cnt;          // reference count
 };
 
-// a list of Item pointers, with a Symbol
-// TODO: for what purposes?
+// a list of Item pointers, with a Pre symbol
+// TODO: what is Pre?
 struct Items {
   Symbol* Pre;               // TODO
   struct Item** item_table;  // Item table
@@ -23,7 +25,7 @@ struct Items {
 };
 
 static void parser_reset(Parser* parser);
-static struct Item* item_make(Symbol* LHS, Symbol** RHS);
+static struct Item* item_make(Symbol* LHS, Symbol** RHS, unsigned index);
 static struct Items* items_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, unsigned* XMax);
 static void item_add(struct Items* Q, struct Item* It);
 static int item_compare(struct Item* A, struct Item* B);
@@ -58,7 +60,7 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
 
   struct Item** Its = 0;
   MALLOC(struct Item*, Its);
-  Its[0] = item_make(0, StartR);
+  Its[0] = item_make(0, StartR, 666);
 
   state_add(parser, &items_table, 1, Its);
 
@@ -88,7 +90,7 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
         if (It->lhs == 0) {
           ++final;
         }
-        else if (*It->rhs_table == 0) {
+        else if (*It->rs.rules == 0) {
           ++ERs;
         } else {
           ++RRs;
@@ -97,12 +99,12 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
         Symbol* Pre = *It->rhs_pos++;
         struct Items* IS = items_get(Pre, &XTab, &Xs, &XMax);
         if (IS->item_cap == 0) {
-          if ((Qs + Pre->rule_count) > QMax) {
-            QMax = Qs + Pre->rule_count;
+          if ((Qs + Pre->rs_cap) > QMax) {
+            QMax = Qs + Pre->rs_cap;
             REALLOC(struct Item*, QBuf, QMax);
           }
-          for (unsigned R = 0; R < Pre->rule_count; ++R, ++Qs) {
-            QBuf[Qs] = item_make(Pre, Pre->rules[R]);
+          for (unsigned R = 0; R < Pre->rs_cap; ++R, ++Qs) {
+            QBuf[Qs] = item_make(Pre, Pre->rs_table[R].rules, Pre->rs_table[R].index);
           }
         }
         item_add(IS, It);
@@ -115,12 +117,12 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
     for (unsigned Q = 0; Q < Qs; ++Q) {
       struct Item* It = QBuf[Q];
       if (*It->rhs_pos != 0 || It->lhs == 0) continue;
-      if (*It->rhs_table == 0) {
+      if (*It->rs.rules == 0) {
         parser->state_table[S].er_table[E++] = It->lhs;
       } else {
         struct Reduce* Rd = &parser->state_table[S].rr_table[R++];
         Rd->lhs = It->lhs;
-        Rd->rhs = It->rhs_table;
+        Rd->rs = It->rs;
       }
     }
     for (unsigned X = 0; X < Xs; ++X) {
@@ -166,7 +168,7 @@ void parser_show(Parser* parser) {
       struct Reduce* r = &St->rr_table[j];
       Slice rn = r->lhs->name;
       printf("\t[%.*s ->", rn.len, rn.ptr);
-      for (Symbol** R = r->rhs; *R != 0; ++R) {
+      for (Symbol** R = r->rs.rules; *R != 0; ++R) {
         Slice nn = (*R)->name;
         printf(" %.*s", nn.len, nn.ptr);
       }
@@ -200,7 +202,7 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
   Slice text = buffer_slice(&parser->source);
 
   do {
-    LOG_INFO("LOADING parser from slice");
+    LOG_DEBUG("LOADING parser from slice");
     symtab_load_from_slice(parser->symtab, &text);
     LOG_DEBUG("LOADED symtab, text now:\n%.*s\n", text.len, text.ptr);
 
@@ -261,15 +263,17 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
       if (lead == FORMAT_REDUCE) {
         int t = parser->state_table[state_tot-1].rr_cap++;
         unsigned lhs_index = 0;
-        unsigned rule_pos = 0;
+        unsigned rs_index = 0;
         pos = next_number(line, pos, &lhs_index);
-        pos = next_number(line, pos, &rule_pos);
-        LOG_DEBUG("loaded reduce: lhs=%u rule=%u", lhs_index, rule_pos);
+        pos = next_number(line, pos, &rs_index);
+        LOG_DEBUG("loaded reduce: lhs=%u rs=%u", lhs_index, rs_index);
         struct Reduce* reduce = &parser->state_table[state_tot-1].rr_table[t];
         Symbol* lhs = find_symbol_by_index(parser->symtab, lhs_index);
         assert(lhs);
+        RuleSet* rs = find_ruleset_by_index(lhs, rs_index);
+        assert(rs);
         reduce->lhs = lhs;
-        reduce->rhs = lhs->rules[rule_pos];
+        reduce->rs = *rs;
         continue;
       }
       if (lead == FORMAT_EPSILON) {
@@ -301,7 +305,7 @@ unsigned parser_save_to_stream(Parser* parser, FILE* fp) {
   fprintf(fp, "%c %u\n", FORMAT_PARSER, parser->state_cap);;
   fprintf(fp, "%c state (%u): final num_sa num_rr num_er\n", FORMAT_COMMENT, parser->state_cap);
   fprintf(fp, "%c   shift: symbol state\n", FORMAT_COMMENT);
-  fprintf(fp, "%c   reduce: lhs rule_pos\n", FORMAT_COMMENT);
+  fprintf(fp, "%c   reduce: lhs rule\n", FORMAT_COMMENT);
   fprintf(fp, "%c   epsilon: symbol\n", FORMAT_COMMENT);
   for (unsigned j = 0; j < parser->state_cap; ++j) {
     struct State* state = &parser->state_table[j];
@@ -313,25 +317,7 @@ unsigned parser_save_to_stream(Parser* parser, FILE* fp) {
 
     for (unsigned k = 0; k < state->rr_cap; ++k) {
       struct Reduce* reduce = &state->rr_table[k];
-      Symbol* lhs = reduce->lhs;
-      unsigned pos = UINT_MAX;
-      for (unsigned r = 0; r < lhs->rule_count; ++r) {
-        Symbol** r1 = lhs->rules[r];
-        Symbol** r2 = reduce->rhs;
-        while (1) {
-          if (!*r1 && !*r2) {
-            pos = r;
-            break;
-          }
-          if (!*r1) break;
-          if (!*r2) break;
-          if ((*r1)->index != (*r2)->index) break;
-          ++r1;
-          ++r2;
-        }
-      }
-      assert(pos != UINT_MAX);
-      fprintf(fp, "%c %u %u\n", FORMAT_REDUCE, reduce->lhs->index, pos);
+      fprintf(fp, "%c %u %u\n", FORMAT_REDUCE, reduce->lhs->index, reduce->rs.index);
     }
 
     for (unsigned k = 0; k < state->er_cap; ++k) {
@@ -343,12 +329,13 @@ unsigned parser_save_to_stream(Parser* parser, FILE* fp) {
   return errors;
 }
 
-static struct Item* item_make(Symbol* LHS, Symbol** RHS) {
+static struct Item* item_make(Symbol* LHS, Symbol** RHS, unsigned index) {
   struct Item* It = 0;
   MALLOC(struct Item, It);
   REF(It);
   It->lhs = LHS;
-  It->rhs_pos = It->rhs_table = RHS;
+  It->rs.index = index;
+  It->rhs_pos = It->rs.rules = RHS;
   return It;
 }
 
@@ -448,12 +435,12 @@ static int item_compare(struct Item* A, struct Item* B) {
   }
   if (Diff != 0) return Diff;
 
-  Diff = (A->rhs_pos - A->rhs_table) - (B->rhs_pos - B->rhs_table);
+  Diff = (A->rhs_pos - A->rs.rules) - (B->rhs_pos - B->rs.rules);
   if (Diff != 0) return Diff;
 
   Symbol** AP = 0;
   Symbol** BP = 0;
-  for (AP = A->rhs_table, BP = B->rhs_table; *AP && *BP; ++AP, ++BP) {
+  for (AP = A->rs.rules, BP = B->rs.rules; *AP && *BP; ++AP, ++BP) {
     Diff = (*AP)->index - (*BP)->index;
     if (Diff != 0) break;
   }

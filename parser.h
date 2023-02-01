@@ -14,7 +14,7 @@ struct Shift {
 // a Reduce action
 struct Reduce {
   Symbol* lhs;               // the left-hand side of the rule being reduced
-  Symbol** rhs;              // the right-hand side (list of Symbols)
+  RuleSet rs;                // the right-hand side ruleset
 };
 
 // a State in the parsing table

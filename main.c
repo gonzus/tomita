@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
       break;
     };
     LOG_INFO("read %u bytes from grammar file [%s] in %luus", data.len, opt_grammar_file, timer_elapsed_us(&timer));
-    LOG_INFO("\n%.*s\n", data.len, data.ptr);
+    LOG_INFO("\n%.*s", data.len, data.ptr);
 
     Slice raw = buffer_slice(&data);
     Slice text_grammar = slice_trim(raw);
@@ -144,7 +144,6 @@ int main(int argc, char **argv) {
     if (opt_grammar) {
       grammar_show(grammar);
 
-#if 1
       FILE* fp = fopen("/tmp/tomita/grammar.out", "w+");
       if (!fp) {
         LOG_INFO("could not create compiled grammar file");
@@ -166,7 +165,7 @@ int main(int argc, char **argv) {
         break;
       }
       LOG_INFO("loaded compiled grammar from file in %luus", timer_elapsed_us(&timer));
-#endif
+      grammar_show(grammar);
     }
 
     timer_start(&timer);
@@ -190,7 +189,6 @@ int main(int argc, char **argv) {
     if (opt_table) {
       parser_show(parser);
 
-#if 1
       FILE* fp = fopen("/tmp/tomita/parser.out", "w+");
       if (!fp) {
         LOG_INFO("could not create compiled parser file");
@@ -203,7 +201,7 @@ int main(int argc, char **argv) {
       slurp_stream(fp, &data);
       fclose(fp);
 
-      // TODO: read back from file
+#if 1
       Slice compiled_parser = buffer_slice(&data);
       timer_start(&timer);
       errors = parser_load_from_slice(parser, compiled_parser);
@@ -217,12 +215,14 @@ int main(int argc, char **argv) {
 #endif
     }
 
+#if 1
     forest = forest_create(parser);
     LOG_INFO("created forest");
 
     for (int j = 0; j < argc; ++j) {
       process_path(forest, argv[j]);
     }
+#endif
   } while (0);
 
   if (forest)
