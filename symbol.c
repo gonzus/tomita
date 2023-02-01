@@ -1,3 +1,4 @@
+#include <limits.h>
 #include "log.h"
 #include "mem.h"
 #include "tomita.h"
@@ -67,16 +68,26 @@ void symbol_save_definition(Symbol* symbol, Buffer* b) {
 
 void symbol_save_rules(Symbol* symbol, Buffer* b) {
   LOG_DEBUG("rulesets for symbol %p index %u [%.*s]", symbol, symbol->index, symbol->name.len, symbol->name.ptr);
-  for (unsigned r = 0; r < symbol->rs_cap; ++r) {
-    RuleSet* rs = &symbol->rs_table[r];
-    LOG_DEBUG("  ruleset %u index %u at %p", r, rs->index, rs->rules);
-    buffer_format_print(b, "%c %u %u", FORMAT_RULE, rs->index, symbol->index);
-    for (Symbol** rules = rs->rules; *rules; ++rules) {
+  unsigned prev = UINT_MAX;
+  for (unsigned count = 0; count < symbol->rs_cap; ++count) {
+    RuleSet* candidate = 0;
+    unsigned largest = 0;
+    for (unsigned r = 0; r < symbol->rs_cap; ++r) {
+      RuleSet* rs = &symbol->rs_table[r];
+      if (rs->index >= prev) continue;
+      if (largest > rs->index) continue;
+      largest = rs->index;
+      candidate = rs;
+    }
+
+    LOG_DEBUG("  ruleset %u index %u at %p", count, candidate->index, candidate->rules);
+    buffer_format_print(b, "%c %u %u", FORMAT_RULE, candidate->index, symbol->index);
+    for (Symbol** rules = candidate->rules; *rules; ++rules) {
       Symbol* rhs = *rules;
-      LOG_DEBUG("    symbol %u [%.*s]", rhs->index, rhs->name.len, rhs->name.ptr);
       buffer_format_print(b, " %u", rhs->index);
     }
     buffer_format_print(b, "\n");
+    prev = largest;
   }
 }
 
