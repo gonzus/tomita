@@ -6,3 +6,4 @@ tom
 tmp/
 t/symtab
 t/grammar
+t/parser
