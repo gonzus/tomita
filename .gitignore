@@ -1,6 +1,7 @@
 **/*.o
 **/*.a
 **/*.dSYM
+**/.DS_Store
 tom
 
 tmp/

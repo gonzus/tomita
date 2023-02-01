@@ -1,48 +1,22 @@
+# Playground for GLR parsing algorithms
+
 ## What
 
-This is a repo containing public domain code which was originally downloaded
-from
-[here](http://www.cs.cmu.edu/afs/cs/project/ai-repository/ai/areas/nlp/parsing/tom/).
+This repo allows me (and you) to play around with grammars, parsers and parse forests.  The focus is on [GLR parsing](https://en.wikipedia.org/wiki/GLR_parser), using an algorithm devised by [Masaru Tomita](https://en.wikipedia.org/wiki/Masaru_Tomita).
 
-This directory contains C source for the Tomita Natural Language parsing
-algorithm.  This project has a long history starting in 10/88 based on a study
-of the Tomita algorithm done in 7/87 and reviewed in 9/88.  The source code,
-however, was written from scratch between 5/20/93 and 5/23/93.
+## Why
 
-Possible extensions to this include:
-* higher LR(k) parsing ability
-* incremental parsing table generation
-* optimization
-* table-packing
-* actions/disambiguation rules, lexical rules, etc.
+Because I love parsers, programming languages and natural language processing.
 
-This implementation of the Tomita Algorithm has not been formally verified with
-respect to cyclic grammars, but hours of searching for counter-examples has
-failed to turn up any negative results.
+## How
 
-To install this software, make sure you have an ANSI-C compiler.  Edit the
-Makefile, if necessary, and compile by typing `make`.
+All the code is written in C and a [Makefile](Makefile) is provided. You can type `make help` to see a list of the supported targets, which as of now are:
+* `clean`: clean everything
+* `all`: (re)build everything
+* `tests`: build all tests
+* `test`: run all tests
+* `tom`: build main executable
 
-The following files are included:
-```
-    The source code .......... Makefile tom.c
-    This readme .............. README.md
-docs:
-    Documentation ............ tom.doc
-    The Algorithm ............ tomita.ref
-examples:
-    Sample grammars .......... gram0 gram1 gram2 gram3
-    Sample parsing table ..... gram0.tab
-    Sample input and output .. in out
-```
+## Whence
 
-The file `gram0.tab` was created by entering the following command line and
-typing an empty line to terminate parsing:
-```
-    ./tom -c examples/gram0 >examples/gram0.tab
-```
-
-The file `out` was created with the following command line:
-```
-    ./tom -s examples/gram0 <examples/in >examples/out
-```
+This code was not originally written by me, but I have made extensive modifications and (hopefully) improvements.  The original code was found [here](http://www.cs.cmu.edu/afs/cs/project/ai-repository/ai/areas/nlp/parsing/tom/).  Please see [here](README-original.md) for more details.

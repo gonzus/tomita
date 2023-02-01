@@ -25,7 +25,7 @@ LDFLAGS += -L. -L/usr/local/lib
 
 LIBRARY = lib$(NAME).a
 
-all: tom
+all: tom  ## (re)build everything
 
 C_SRC_LIB = \
 	buffer.c \
