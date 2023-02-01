@@ -2,11 +2,6 @@
 
 ### Definitely 👍
 
-* WIP: use intermediate files (branch `using-files`):
-  * Unify `mem.[hc]` and `memory.[hc]`.
-  * Get rid of `console.[hc]`?
-  * Put more constants in `tomita.h` and **use them**.
-* Add unit tests: *yes* **yes** ***yes***.
 * Make multi-step work possible.  This is hampered today by the fact that a
   `parser` needs a `grammar` and a `forest` needs a `parser` (and a `grammar`).
   * Step 1: processing a `grammar` definition and generating the `parser` for
@@ -43,3 +38,8 @@
   `reduce/reduce`) while generating the parser.
 * Support `yacc` syntax in grammar files -- easier to copy / paste.
 * Support comments in grammar files -- probably with `#`.
+* Use intermediate files (branch `using-files`):
+  * Unify `mem.[hc]` and `memory.[hc]`.
+  * Get rid of `console.[hc]`?
+  * Put more constants in `tomita.h` and **use them**.
+* Add unit tests: *yes* **yes** ***yes***.
