@@ -237,7 +237,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     forest->vert_pos = forest->vert_cap;
     forest->node_pos = forest->node_cap;
     if (Word->rule_count == 0) { /* Treat the word as a new word. */
-      for (Symbol* S = forest->parser->grammar->first; S != 0; S = S->nxt_list) {
+      for (Symbol* S = forest->parser->symtab->first; S != 0; S = S->nxt_list) {
         if (S->rule_count > 0) continue;
         unsigned N = subnode_add(forest, S, P);
         for (unsigned W = VP; W < forest->vert_pos; ++W) {
@@ -474,7 +474,7 @@ static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** s
     unsigned beg = pos;
     while (pos < text.len && !isspace(text.ptr[pos])) ++pos;
     Slice name = slice_from_memory(text.ptr + beg, pos - beg);
-    symtab_lookup(forest->parser->grammar->symtab, name, 1, sym);
+    *sym = symtab_lookup(forest->parser->symtab, name, 1);
     ++forest->position;
   } while (0);
 

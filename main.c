@@ -92,62 +92,129 @@ int main(int argc, char **argv) {
   argc -= optind;
   argv += optind;
 
-  Buffer src; buffer_build(&src);
-  Timer timer;
+  Buffer data; buffer_build(&data);
+  SymTab* symtab = 0;
   Grammar* grammar = 0;
   Parser* parser = 0;
   Forest* forest = 0;
   do {
-#if 0
-    unsigned len = slurp_file(opt_grammar_file, &src);
-    if (len <= 0) break;
-    LOG_INFO("read %u bytes from [%s]", len, opt_grammar_file);
-    Slice raw = buffer_slice(&src);
-    Slice text_grammar = slice_trim(raw);
-    if (opt_grammar) {
-      printf("%.*s\n", text_grammar.len, text_grammar.ptr);
-    }
-#endif
-
-    grammar = grammar_create();
-    if (!grammar) break;
+    unsigned errors = 0;
+    Timer timer;
 
     timer_start(&timer);
-    slurp_file(opt_grammar_file, &src);
-    Slice raw = buffer_slice(&src);
-    LOG_INFO("read %u bytes from [%s]", raw.len, opt_grammar_file);
+    symtab = symtab_create();
+    timer_stop(&timer);
+    if (!symtab) {
+      LOG_INFO("could not create symtab");
+      break;
+    };
+    LOG_INFO("symtab created in %luus", timer_elapsed_us(&timer));
+
+    timer_start(&timer);
+    grammar = grammar_create(symtab);
+    timer_stop(&timer);
+    if (!grammar) {
+      LOG_INFO("could not create grammar");
+      break;
+    };
+    LOG_INFO("grammar created in %luus", timer_elapsed_us(&timer));
+
+    buffer_clear(&data);
+    timer_start(&timer);
+    slurp_file(opt_grammar_file, &data);
+    timer_stop(&timer);
+    if (data.len == 0) {
+      LOG_INFO("could not read grammar file [%s]", opt_grammar_file);
+      break;
+    };
+    LOG_INFO("read %u bytes from grammar file [%s] in %luus", data.len, opt_grammar_file, timer_elapsed_us(&timer));
+    LOG_INFO("\n%.*s\n", data.len, data.ptr);
+
+    Slice raw = buffer_slice(&data);
     Slice text_grammar = slice_trim(raw);
-    unsigned errors = grammar_build_from_text(grammar, text_grammar);
+    timer_start(&timer);
+    errors = grammar_build_from_text(grammar, text_grammar);
     timer_stop(&timer);
     if (errors) {
       LOG_INFO("grammar has %u errors", errors);
       break;
     }
     LOG_INFO("built grammar from source in %luus", timer_elapsed_us(&timer));
+
     if (opt_grammar) {
       grammar_show(grammar);
 
+#if 1
       FILE* fp = fopen("/tmp/tomita/grammar.out", "w+");
+      if (!fp) {
+        LOG_INFO("could not create compiled grammar file");
+        break;
+      }
+
       grammar_save_to_stream(grammar, fp);
       rewind(fp);
-
-      timer_start(&timer);
-      grammar_load_from_stream(grammar, fp);
-      timer_stop(&timer);
+      buffer_clear(&data);
+      slurp_stream(fp, &data);
       fclose(fp);
 
-      LOG_INFO("loaded grammar from file in %luus", timer_elapsed_us(&timer));
+      Slice compiled_grammar = buffer_slice(&data);
+      timer_start(&timer);
+      errors = grammar_load_from_slice(grammar, compiled_grammar);
+      timer_stop(&timer);
+      if (errors) {
+        LOG_INFO("compiled grammar has %u errors", errors);
+        break;
+      }
+      LOG_INFO("loaded compiled grammar from file in %luus", timer_elapsed_us(&timer));
+#endif
     }
 
-    parser = parser_create(grammar);
-    if (!parser) break;
-    LOG_INFO("created parser");
+    timer_start(&timer);
+    parser = parser_create(symtab);
+    timer_stop(&timer);
+    if (!parser) {
+      LOG_INFO("could not create parser");
+      break;
+    };
+    LOG_INFO("parser created in %luus", timer_elapsed_us(&timer));
+
+    timer_start(&timer);
+    errors = parser_build_from_grammar(parser, grammar);
+    timer_stop(&timer);
+    if (errors) {
+      LOG_INFO("parser has %u errors", errors);
+      break;
+    }
+    LOG_INFO("built parser from grammar in %luus", timer_elapsed_us(&timer));
+
     if (opt_table) {
       parser_show(parser);
 
+#if 1
       FILE* fp = fopen("/tmp/tomita/parser.out", "w+");
+      if (!fp) {
+        LOG_INFO("could not create compiled parser file");
+        break;
+      }
+
       parser_save_to_stream(parser, fp);
+      rewind(fp);
+      buffer_clear(&data);
+      slurp_stream(fp, &data);
       fclose(fp);
+
+      // TODO: read back from file
+      Slice compiled_parser = buffer_slice(&data);
+      timer_start(&timer);
+      errors = parser_load_from_slice(parser, compiled_parser);
+      timer_stop(&timer);
+      if (errors) {
+        LOG_INFO("compiled parser has %u errors", errors);
+        break;
+      }
+      LOG_INFO("loaded compiled parser from file in %luus", timer_elapsed_us(&timer));
+      parser_show(parser);
+#endif
     }
 
     forest = forest_create(parser);
@@ -164,7 +231,9 @@ int main(int argc, char **argv) {
     parser_destroy(parser);
   if (grammar)
     grammar_destroy(grammar);
-  buffer_destroy(&src);
+  if (symtab)
+    symtab_destroy(symtab);
+  buffer_destroy(&data);
 
   return 0;
 }

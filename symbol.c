@@ -28,28 +28,28 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP) {
     unsigned diff = 0;
     Symbol** A = 0;
     Symbol** B = 0;
-    for (diff = 0, A = SymBuf, B = symbol->rules[k]; *A && *B; ++A, ++B) {
+    for (A = SymBuf, B = symbol->rules[k]; !diff && *A && *B; ++A, ++B) {
       diff = (*A)->index - (*B)->index;
-      if (diff != 0) break;
     }
-    if (diff == 0 && *B == 0) {
-      if (*A == 0) return;
-      break;
-    } else if (diff > 0) {
-      break;
+    if (diff < 0) continue;
+    if (diff > 0) break;
+    if (*B == 0) {
+      if (*A == 0) return; else break;
     }
   }
 
   // need more room and to shift later rules
   TABLE_CHECK_GROW(symbol->rules, symbol->rule_count, 8, Symbol**);
+  LOG_DEBUG("Growing, current %u, k=%u", symbol->rule_count, k);
   for (unsigned j = symbol->rule_count++; j > k; --j) {
     symbol->rules[j] = symbol->rules[j - 1];
   }
 
+  unsigned size = SymP - SymBuf;
   Symbol** rule = 0;
-  MALLOC_N(Symbol*, rule, SymP - SymBuf);
+  MALLOC_N(Symbol*, rule, size);
   symbol->rules[k] = rule;
-  for (k = 0; k < (SymP - SymBuf); ++k) {
+  for (k = 0; k < size; ++k) {
     rule[k] = SymBuf[k];
     if (!rule[k]) continue;
     LOG_DEBUG("  symbol #%u -> %p [%.*s]", k, (void*) rule[k], rule[k]->name.len, rule[k]->name.ptr);
@@ -66,6 +66,6 @@ void symbol_print_rules(Symbol* symbol, FILE* fp) {
     for (Symbol** rule = symbol->rules[r]; *rule; ++rule) {
       fprintf(fp, " %d", (*rule)->index);
     }
-    fprintf(fp, "\n");
+    fprintf(fp, "  # %u\n", r);
   }
 }
