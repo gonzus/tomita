@@ -5,23 +5,37 @@
 #define ALEN(a) (unsigned) (sizeof(a) / sizeof(a[0]))
 
 static void test_build_symtab(void) {
-  static struct Data {
+  struct Data {
     const char* name;
     unsigned char literal;
-  } Data[] = {
-    { "thorin", 1 },
-    { "balin" , 0 },
-    { "dwalin", 1 },
-    { "fili"  , 0 },
-    { "kili"  , 1 },
-    { "dori"  , 0 },
-    { "ori"   , 1 },
-    { "nori"  , 0 },
-    { "oin"   , 1 },
-    { "gloin" , 0 },
-    { "bifur" , 1 },
-    { "bofur" , 0 },
-    { "bombur", 1 },
+  };
+  static const char* Type[] = {
+    "non-terminal",
+    "terminal",
+  };
+  static struct Data Dwarves[] = {
+    { "Thorin", 1 },
+    { "Balin" , 0 },
+    { "Dwalin", 1 },
+    { "Fili"  , 0 },
+    { "Kili"  , 1 },
+    { "Dori"  , 0 },
+    { "Ori"   , 1 },
+    { "Nori"  , 0 },
+    { "Oin"   , 1 },
+    { "Gloin" , 0 },
+    { "Bifur" , 1 },
+    { "Bofur" , 0 },
+    { "Bombur", 1 },
+  };
+  static struct Data Elves[] = {
+    { "Feanor"   , 1 },
+    { "Finarfin" , 0 },
+    { "Fingolfin", 1 },
+    { "Finrod"   , 0 },
+    { "Galadriel", 1 },
+    { "Elrond"   , 0 },
+    { "Legolas"  , 1 },
   };
 
   unsigned errors = 0;
@@ -33,20 +47,35 @@ static void test_build_symtab(void) {
     ok(symtab != 0, "can create a symtab");
     if (!symtab) break;
 
-    for (unsigned j = 0; j < ALEN(Data); ++j) {
+    for (unsigned j = 0; j < ALEN(Dwarves); ++j) {
       unsigned pos = j;
-      struct Data* data = &Data[pos];
+      struct Data* data = &Dwarves[pos];
       Slice name = slice_from_string(data->name, 0);
       Symbol* s = symtab_lookup(symtab, name, data->literal, 1);
-      ok(s->index == pos, "inserted symbol [%.*s] with index %u", s->name.len, s->name.ptr, s->index);
+      ok(s->index == pos, "inserted symbol [%.*s] with index %u", name.len, name.ptr, pos);
     }
 
-    for (unsigned j = 0; j < ALEN(Data); ++j) {
-      unsigned pos = ALEN(Data) - j - 1;
-      struct Data* data = &Data[pos];
+    for (unsigned j = 0; j < ALEN(Dwarves); ++j) {
+      unsigned pos = ALEN(Dwarves) - j - 1;
+      struct Data* data = &Dwarves[pos];
       Slice name = slice_from_string(data->name, 0);
-      Symbol* s = symtab_lookup(symtab, name, data->literal, 1);
-      ok(s->index == pos, "found symbol [%.*s] with index %u", s->name.len, s->name.ptr, s->index);
+      for (unsigned wanted = 0; wanted < 2; ++wanted) {
+        unsigned must = wanted == data->literal;
+        Symbol* s = symtab_lookup(symtab, name, wanted, 0);
+        ok(must ? (s && s->index == pos) : (!s),
+           "symbol [%.*s] %s as %s with index %u",
+           name.len, name.ptr, must ? "found" : "not found", Type[wanted], pos);
+      }
+    }
+
+    for (unsigned j = 0; j < ALEN(Elves); ++j) {
+      unsigned pos = j;
+      struct Data* data = &Elves[pos];
+      Slice name = slice_from_string(data->name, 0);
+      for (unsigned wanted = 0; wanted < 2; ++wanted) {
+        Symbol* s = symtab_lookup(symtab, name, wanted, 0);
+        ok(s == 0, "did not find symbol [%.*s] as %s", name.len, name.ptr, Type[wanted]);
+      }
     }
 
     buffer_clear(&created);
