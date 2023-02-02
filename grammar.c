@@ -93,7 +93,7 @@ unsigned grammar_compile_from_slice(Grammar* grammar, Slice source) {
         if (tok.typ != IdenT) {
           LOG_WARN("missing symbol after '%c'", GRAMMAR_START);
         } else {
-          grammar->start = symtab_lookup(grammar->symtab, tok.val, 0);
+          grammar->start = symtab_lookup(grammar->symtab, tok.val, 0, 1);
           if (saw_start++ > 0) {
             LOG_WARN("start symbol redefined");
           }
@@ -109,7 +109,7 @@ unsigned grammar_compile_from_slice(Grammar* grammar, Slice source) {
     }
 
     if (do_equal) {
-      Symbol* lhs = symtab_lookup(grammar->symtab, tok.val, 0);
+      Symbol* lhs = symtab_lookup(grammar->symtab, tok.val, 0, 1);
       lhs->defined = 1;
       if (grammar->start == 0) {
         grammar->start = lhs;
@@ -120,7 +120,7 @@ unsigned grammar_compile_from_slice(Grammar* grammar, Slice source) {
           sym_pos = sym_buf;
           *sym_pos++ = lhs;
           *sym_pos++ = 0;
-          symbol_insert_rule(symtab_lookup(grammar->symtab, lhs->name, 1), sym_buf, sym_pos, &grammar->symtab->rules_counter, 0);
+          symbol_insert_rule(symtab_lookup(grammar->symtab, lhs->name, 1, 1), sym_buf, sym_pos, &grammar->symtab->rules_counter, 0);
           break;
 
         case EqTokenT:
@@ -128,7 +128,7 @@ unsigned grammar_compile_from_slice(Grammar* grammar, Slice source) {
           *sym_pos++ = lhs;
           *sym_pos++ = 0;
           for (pos = input_token(text, pos, &tok); tok.typ == IdenT; pos = input_token(text, pos, &tok)) {
-            symbol_insert_rule(symtab_lookup(grammar->symtab, tok.val, 1), sym_buf, sym_pos, &grammar->symtab->rules_counter, 0);
+            symbol_insert_rule(symtab_lookup(grammar->symtab, tok.val, 1, 1), sym_buf, sym_pos, &grammar->symtab->rules_counter, 0);
           }
           break;
 
@@ -136,7 +136,7 @@ unsigned grammar_compile_from_slice(Grammar* grammar, Slice source) {
           do {
             pos = input_token(text, pos, &tok);
             for (sym_pos = sym_buf; tok.typ == IdenT && sym_pos < sym_buf + MAX_SYM; pos = input_token(text, pos, &tok)) {
-              *sym_pos++ = symtab_lookup(grammar->symtab, tok.val, 0);
+              *sym_pos++ = symtab_lookup(grammar->symtab, tok.val, 0, 1);
             }
             if (sym_pos >= sym_buf + MAX_SYM) {
               LOG_FATAL("rule too large, max is %u", MAX_SYM);

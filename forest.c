@@ -474,7 +474,7 @@ static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** s
     unsigned beg = pos;
     while (pos < text.len && !isspace(text.ptr[pos])) ++pos;
     Slice name = slice_from_memory(text.ptr + beg, pos - beg);
-    *sym = symtab_lookup(forest->parser->symtab, name, 1);
+    *sym = symtab_lookup(forest->parser->symtab, name, 1, 1);
     ++forest->position;
   } while (0);
 

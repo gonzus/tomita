@@ -46,7 +46,7 @@ static unsigned char hash(Slice string) {
   return H & (HASH_MAX - 1);
 }
 
-Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal) {
+Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, unsigned char insert) {
   Symbol* s = 0;
   unsigned char h = hash(name);
 
@@ -57,7 +57,10 @@ Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal) {
     return s;
   }
 
-  // not found, must create and chain
+  // not found
+  if (!insert) return 0;
+
+  // must create and chain
   s = symbol_create(name, literal, &symtab->symbol_counter);
   s->nxt_hash = symtab->table[h];
   symtab->table[h] = s;
@@ -67,7 +70,6 @@ Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal) {
     symtab->first = s;
   }
   symtab->last = s;
-
   return s;
 }
 
@@ -110,7 +112,7 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
         pos = next_string(line, pos, &name);
         pos = next_number(line, pos, &literal);
         pos = next_number(line, pos, &defined);
-        Symbol* sym = symtab_lookup(symtab, name, literal);
+        Symbol* sym = symtab_lookup(symtab, name, literal, 1);
         LOG_DEBUG("loaded symbol: index=%u, name=[%.*s], literal=%u, defined=%u", index, name.len, name.ptr, literal, defined);
         assert(index == sym->index);
         sym->defined = defined;

@@ -37,7 +37,7 @@ static void test_build_symtab(void) {
       unsigned pos = j;
       struct Data* data = &Data[pos];
       Slice name = slice_from_string(data->name, 0);
-      Symbol* s = symtab_lookup(symtab, name, data->literal);
+      Symbol* s = symtab_lookup(symtab, name, data->literal, 1);
       ok(s->index == pos, "inserted symbol [%.*s] with index %u", s->name.len, s->name.ptr, s->index);
     }
 
@@ -45,7 +45,7 @@ static void test_build_symtab(void) {
       unsigned pos = ALEN(Data) - j - 1;
       struct Data* data = &Data[pos];
       Slice name = slice_from_string(data->name, 0);
-      Symbol* s = symtab_lookup(symtab, name, data->literal);
+      Symbol* s = symtab_lookup(symtab, name, data->literal, 1);
       ok(s->index == pos, "found symbol [%.*s] with index %u", s->name.len, s->name.ptr, s->index);
     }
 
