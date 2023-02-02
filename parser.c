@@ -152,40 +152,62 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
 }
 
 void parser_show(Parser* parser) {
+  printf("#   normal shift:  t => state\n");
+  printf("#  normal reduce:  [A => B t C]\n");
+  printf("# epsilon reduce:  [A -> state]\n");
+  printf("#           goto:  A goto state\n");
+  printf("#         accept:  ACCEPT\n");
   unsigned conflict_sr = 0;
   unsigned conflict_rr = 0;
   for (unsigned S = 0; S < parser->state_cap; ++S) {
-    printf("%d:\n", S);
+    unsigned accept_count = 0;
+    unsigned reduce_count = 0;
+    unsigned shift_count = 0;
     struct State* St = &parser->state_table[S];
-    if (St->final) printf("\taccept\n");
+
+    printf("%d:\n", S);
+    if (St->final) {
+      printf("\tACCEPT\n");
+      ++accept_count;
+    }
+
     for (unsigned j = 0; j < St->er_cap; ++j) {
-      Slice sn = St->er_table[j]->name;
-      printf("\t[%.*s -> 1]\n", sn.len, sn.ptr);
+      Symbol* lhs = St->er_table[j];
+      Slice name = lhs->name;
+      printf("\t[%.*s -> 1]\n", name.len, name.ptr);
+      ++reduce_count;
     }
 
     for (unsigned j = 0; j < St->rr_cap; ++j) {
-      struct Reduce* r = &St->rr_table[j];
-      Slice rn = r->lhs->name;
-      printf("\t[%.*s ->", rn.len, rn.ptr);
-      for (Symbol** R = r->rs.rules; *R != 0; ++R) {
-        Slice nn = (*R)->name;
-        printf(" %.*s", nn.len, nn.ptr);
+      struct Reduce* reduce = &St->rr_table[j];
+      Symbol* lhs = reduce->lhs;
+      Slice ln = lhs->name;
+      printf("\t[%.*s =>", ln.len, ln.ptr);
+      for (Symbol** rhs = reduce->rs.rules; *rhs != 0; ++rhs) {
+        Slice rn = (*rhs)->name;
+        printf(" %.*s", rn.len, rn.ptr);
       }
       printf("]\n");
+      ++reduce_count;
     }
-    if (St->rr_cap > 1) {
-      unsigned n = St->rr_cap - 1;
+
+    if (reduce_count > 1) {
+      unsigned n = reduce_count - 1;
       printf("\t\t*** %u reduce/reduce conflict%s ***\n", n, n == 1 ? "" : "s");
       conflict_rr += n;
     }
 
     for (unsigned j = 0; j < St->ss_cap; ++j) {
-      struct Shift* s = &St->ss_table[j];
-      Slice sn = s->symbol->name;
-      printf("\t%.*s => %d\n", sn.len, sn.ptr, s->state);
+      struct Shift* shift = &St->ss_table[j];
+      Symbol* symbol = shift->symbol;
+      Slice name = symbol->name;
+      unsigned is_shift = symbol->literal ? 1 : !symbol->rs_cap;
+      printf("\t%.*s %s %d\n", name.len, name.ptr, is_shift ? "=>" : "goto", shift->state);
+      shift_count += is_shift;
     }
-    if (St->ss_cap > 0 && St->rr_cap > 0) {
-      unsigned n = St->ss_cap;
+
+    if (shift_count > 0 && reduce_count > 0) {
+      unsigned n = shift_count * reduce_count;
       printf("\t\t*** %u shift/reduce conflict%s ***\n", n, n == 1 ? "" : "s");
       conflict_sr += n;
     }

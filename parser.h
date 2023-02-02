@@ -5,6 +5,7 @@
 #include "grammar.h"
 
 // a Shift action
+// also used to represent gotos, when symbol is a non-terminal
 struct Shift {
   Symbol* symbol;            // the symbol causing the shift
   unsigned state;            // state to change to
