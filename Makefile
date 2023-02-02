@@ -56,7 +56,7 @@ C_EXE_TEST = $(patsubst %.c, %, $(C_SRC_TEST))
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-tom: main.c $(LIBRARY)  ## build main executable
+tom: main.o $(LIBRARY)  ## build main executable
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 $(C_EXE_TEST): %: %.o $(LIBRARY)
