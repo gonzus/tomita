@@ -30,7 +30,7 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP, unsigned
   LOG_DEBUG("adding ruleset #%u index %u with %u rhs symbols for symbol %p [%.*s]", symbol->rs_cap, index, size, (void*) symbol, symbol->name.len, symbol->name.ptr);
   unsigned int k = 0;
   for (k = 0; k < symbol->rs_cap; ++k) {
-    unsigned diff = 0;
+    int diff = 0;
     Symbol** A = 0;
     Symbol** B = 0;
     for (A = SymBuf, B = symbol->rs_table[k].rules; !diff && *A && *B; ++A, ++B) {
