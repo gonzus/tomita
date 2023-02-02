@@ -446,7 +446,7 @@ static struct Item* item_clone(struct Item* A) {
 static void item_add(struct Items* Q, struct Item* It) {
   unsigned I = 0;
   for (I = 0; I < Q->item_cap; ++I) {
-    unsigned Diff = item_compare(Q->item_table[I], It);
+    int Diff = item_compare(Q->item_table[I], It);
     if (Diff == 0) return;
     if (Diff > 0) break;
   }
