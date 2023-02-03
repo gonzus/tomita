@@ -8,3 +8,5 @@ tmp/
 t/symtab
 t/grammar
 t/parser
+t/forest
+t/tomita

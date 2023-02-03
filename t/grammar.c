@@ -20,6 +20,8 @@ static void test_build_grammar(void) {
   Buffer compiled; buffer_build(&compiled);
   Buffer loaded; buffer_build(&loaded);
   do {
+    ok(1, "=== TESTING grammar ===");
+
     symtab = symtab_create();
     ok(symtab != 0, "can create a symtab");
     if (!symtab) break;

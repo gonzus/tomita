@@ -21,6 +21,8 @@ static void test_build_parser(void) {
   Buffer compiled; buffer_build(&compiled);
   Buffer loaded; buffer_build(&loaded);
   do {
+    ok(1, "=== TESTING parser ===");
+
     symtab = symtab_create();
     ok(symtab != 0, "can create a symtab");
     if (!symtab) break;

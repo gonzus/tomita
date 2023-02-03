@@ -156,7 +156,7 @@ static void forest_show_vertex(Forest* forest, unsigned W) {
 static void forest_prepare(Forest* forest) {
   if (forest->prepared) return;
   forest->prepared = 1;
-  LOG_INFO("preparing forest");
+  LOG_DEBUG("preparing forest");
 
   forest->position = 0;
   forest->node_table = 0;
@@ -178,7 +178,7 @@ static void forest_prepare(Forest* forest) {
 static void forest_cleanup(Forest* forest) {
   if (!forest->prepared) return;
   forest->prepared = 0;
-  LOG_INFO("cleaning up forest");
+  LOG_DEBUG("cleaning up forest");
 
   for (unsigned N = 0; N < forest->node_cap; ++N) {
     struct Node* Nd = &forest->node_table[N];

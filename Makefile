@@ -39,6 +39,7 @@ C_SRC_LIB = \
 	stb.c \
 	symbol.c \
 	symtab.c \
+	tomita.c \
 	timer.c \
 	util.c \
 
@@ -69,7 +70,7 @@ test: tests ## run all tests
 
 clean:  ## clean everything
 	rm -f *.o
-	rm -f tom
+	rm -fr tom tom.dSYM
 	rm -f $(C_OBJ_TEST) $(C_EXE_TEST)
 
 help: ## display this help
