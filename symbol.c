@@ -68,6 +68,18 @@ void symbol_save_definition(Symbol* symbol, Buffer* b) {
 
 void symbol_save_rules(Symbol* symbol, Buffer* b) {
   LOG_DEBUG("rulesets for symbol %p index %u [%.*s]", symbol, symbol->index, symbol->name.len, symbol->name.ptr);
+  // TODO: use a more efficient algorithm here?
+  //
+  // We want to print the rules in a predictable way, to ease comparison using
+  // diff. One way of doing this is to sort the rules according to their index;
+  // this might be doable but it may also be expensive (to create a temp array
+  // just to sort it) or disruptive (if we try to sort in place).
+  //
+  // What we do is basically an O(N^2) "sort": we loop N times, and each time
+  // pick the highest index that we have still not printed.  Given that the
+  // expected size of the rulesets seems to be rather small, this could actually
+  // end up being *faster* than creating a temp array and using qsort() --
+  // still, this needs measurement at some point.
   unsigned prev = UINT_MAX;
   for (unsigned count = 0; count < symbol->rs_cap; ++count) {
     RuleSet* candidate = 0;
