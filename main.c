@@ -19,7 +19,7 @@ static unsigned process_line(Tomita* tomita, Slice line) {
     LOG_INFO("parsed input, got %p", node);
     if (node) {
       putchar('*');
-      forest_show_node(tomita->forest, node);
+      node_show(node);
       putchar('.');
       putchar('\n');
     }

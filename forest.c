@@ -87,7 +87,7 @@ void forest_show(Forest* forest) {
   for (unsigned N = 0; N < forest->node_cap; ++N) {
     struct Node* Nd = &forest->node_table[N];
     if (Nd->Sym->literal) continue;
-    forest_show_node(forest, Nd);
+    node_show(Nd);
     if (Nd->Subs > 0) {
       struct Subnode* P = Nd->Sub[0];
       // we were not checking P in the next if
@@ -104,15 +104,19 @@ void forest_show(Forest* forest) {
       }
       for (struct Subnode* P = Nd->Sub[S]; P != 0; P = P->Next) {
         struct Node* node = &forest->node_table[P->Cur];
-        forest_show_node(forest, node);
+        node_show(node);
       }
     }
     printf(".\n");
   }
 }
 
-void forest_show_node(Forest* forest, struct Node* node) {
-  UNUSED(forest);
+unsigned node_size(struct Node* node) {
+  if (node->Sym->literal) return 0;
+  return node->Subs;
+}
+
+void node_show(struct Node* node) {
   Slice name = node->Sym->name;
   if (node->Sym->literal) {
     printf(" \"%.*s\"", name.len, name.ptr);
@@ -138,7 +142,7 @@ void forest_show_stack(Forest* forest) {
       struct ZNode* N = V->List[Z];
       struct Node* node = &forest->node_table[N->Val];
       printf(" [");
-      forest_show_node(forest, node);
+      node_show(node);
       printf(" ] <=");
       for (unsigned W1 = 0; W1 < N->Size; ++W1) {
         forest_show_vertex(forest, N->List[W1]);

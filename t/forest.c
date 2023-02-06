@@ -14,7 +14,7 @@ static void test_build_forest(void) {
     "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
   ;
   static const char* expr_source =
-    "2 - 3 * 4 + 5"
+    "2 - 3 * 4"
   ;
 
   unsigned errors = 0;
@@ -48,10 +48,17 @@ static void test_build_forest(void) {
     ok(forest != 0, "can create a forest");
     if (!forest) break;
 
-    Slice s = slice_from_string(expr_source, 0);
-    struct Node* node = forest_parse(forest, s);
+    Slice e = slice_from_string(expr_source, 0);
+    struct Node* node = forest_parse(forest, e);
     ok(!!node, "can parse a source into a parse forest");
 
+#if 0
+    node_show(node);
+    printf("\n");
+    forest_show(forest);
+#endif
+
+    ok(node_size(node) == 2, "root node has the expected %d branches", 2);
   } while (0);
   if (forest) forest_destroy(forest);
   if (parser) parser_destroy(parser);

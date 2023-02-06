@@ -41,8 +41,11 @@ struct Node* forest_parse(Forest* forest, Slice text);
 // Print a forest in a human-readable format.
 void forest_show(Forest* forest);
 
-// Print a forest node in a human-readable format.
-void forest_show_node(Forest* forest, struct Node* node);
-
 // Print the forest stack in a human-readable format.
 void forest_show_stack(Forest* forest);
+
+// Print a node in a human-readable format.
+void node_show(struct Node* node);
+
+// Return how many branches the node has.
+unsigned node_size(struct Node* node);
