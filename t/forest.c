@@ -2,6 +2,8 @@
 #include "util.h"
 #include "forest.h"
 
+#define ALEN(a) (unsigned) (sizeof(a) / sizeof(a[0]))
+
 static void test_build_forest(void) {
   static const char* grammar_source =
     "Expr : Expr '-' Expr"
@@ -13,9 +15,18 @@ static void test_build_forest(void) {
     "'*';"
     "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
   ;
-  static const char* expr_source =
-    "2 - 3 * 4"
-  ;
+  typedef struct Expr {
+    int value;
+    unsigned branches;
+    const char* what;
+  } Expr;
+  // TODO: test with invalid expresions
+  // For example, "2 + 3" is being recognized, '+' shows up as a digit?!?
+  static const Expr exprs[] = {
+    {  3, 2, "9 - 3 * 2" },
+    { 16, 2, "6 * 3 - 2" },
+    { 24, 3, "1 * 2 * 3 * 4" },
+  };
 
   unsigned errors = 0;
   SymTab* symtab = 0;
@@ -48,17 +59,22 @@ static void test_build_forest(void) {
     ok(forest != 0, "can create a forest");
     if (!forest) break;
 
-    Slice e = slice_from_string(expr_source, 0);
-    errors = forest_parse(forest, e);
-    ok(errors == 0, "can parse a source into a parse forest");
+    for (unsigned j = 0; j < ALEN(exprs); ++j) {
+      // int expected = exprs[j].value;
+      const char* expr = exprs[j].what;
+      Slice e = slice_from_string(expr, 0);
+      errors = forest_parse(forest, e);
+      ok(errors == 0, "can parse source '%s' into a parse forest", expr);
+      ok(!!forest->root, "parsed source '%s' has a root node", expr);
+      if (!forest->root) continue;
+      ok(forest->root->sub_cap == exprs[j].branches, "root node for '%s' has the expected %d branches", expr, exprs[j].branches);
 
 #if 0
-    node_show(forest->root);
-    printf("\n");
-    forest_show(forest);
+      node_show(forest->root);
+      printf("\n");
+      forest_show(forest);
 #endif
-
-    ok(forest->root->sub_cap == 2, "root node has the expected %d branches", 2);
+    }
   } while (0);
   if (forest) forest_destroy(forest);
   if (parser) parser_destroy(parser);
