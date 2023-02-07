@@ -140,8 +140,7 @@ unsigned tomita_show_forest(Tomita* tomita) {
   return errors;
 }
 
-struct Node* tomita_parse_slice_into_forest(Tomita* tomita, Slice source) {
-  struct Node* node = 0;
+unsigned tomita_parse_slice_into_forest(Tomita* tomita, Slice source) {
   unsigned errors = 0;
   do {
     if (!tomita->parser) {
@@ -150,9 +149,13 @@ struct Node* tomita_parse_slice_into_forest(Tomita* tomita, Slice source) {
       break;
     }
     reset_forest(tomita);
-    node = forest_parse(tomita->forest, source);
+    errors = forest_parse(tomita->forest, source);
+    if (!tomita->forest || !tomita->forest->root) {
+      ++errors;
+      break;
+    }
   } while (0);
-  return node;
+  return errors;
 }
 
 static void clear_forest(Tomita* tomita) {

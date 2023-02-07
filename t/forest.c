@@ -49,16 +49,16 @@ static void test_build_forest(void) {
     if (!forest) break;
 
     Slice e = slice_from_string(expr_source, 0);
-    struct Node* node = forest_parse(forest, e);
-    ok(!!node, "can parse a source into a parse forest");
+    errors = forest_parse(forest, e);
+    ok(errors == 0, "can parse a source into a parse forest");
 
 #if 0
-    node_show(node);
+    node_show(forest->root);
     printf("\n");
     forest_show(forest);
 #endif
 
-    ok(node_size(node) == 2, "root node has the expected %d branches", 2);
+    ok(forest->root->sub_cap == 2, "root node has the expected %d branches", 2);
   } while (0);
   if (forest) forest_destroy(forest);
   if (parser) parser_destroy(parser);

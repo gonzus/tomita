@@ -53,4 +53,4 @@ unsigned tomita_write_parser_to_buffer(Tomita* tomita, Buffer* b);
 
 // forest functions
 unsigned tomita_show_forest(Tomita* tomita);
-struct Node* tomita_parse_slice_into_forest(Tomita* tomita, Slice source);
+unsigned tomita_parse_slice_into_forest(Tomita* tomita, Slice source);

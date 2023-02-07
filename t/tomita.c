@@ -34,9 +34,9 @@ static void test_tomita_build_and_parse_ok(void) {
     ok(errors == 0, "tomita can build a parser from a grammar");
 
     Slice e = slice_from_string(expr_source, 0);
-    struct Node* node = tomita_parse_slice_into_forest(tomita, e);
+    errors = tomita_parse_slice_into_forest(tomita, e);
     ok(errors == 0, "tomita can parse a source into a parse forest");
-    ok(node_size(node) == 2, "root node has the expected %d branches", 2);
+    ok(tomita->forest->root->sub_cap == 2, "root node has the expected %d branches", 2);
   } while (0);
   if (tomita) tomita_destroy(tomita);
 }
@@ -70,8 +70,8 @@ static void test_tomita_build_without_grammar(void) {
     ok(errors > 0, "tomita cannot show a forest without a grammar");
 
     Slice e = slice_from_string("", 0);
-    struct Node* node = tomita_parse_slice_into_forest(tomita, e);
-    ok(!node, "tomita cannot parse a source into a parse forest without a grammar");
+    errors = tomita_parse_slice_into_forest(tomita, e);
+    ok(errors > 0, "tomita cannot parse a source into a parse forest without a grammar");
   } while (0);
   if (tomita) tomita_destroy(tomita);
 }
@@ -91,8 +91,8 @@ static void test_tomita_build_without_parser(void) {
     ok(errors == 0, "tomita can compile a grammar from source");
 
     Slice e = slice_from_string("", 0);
-    struct Node* node = tomita_parse_slice_into_forest(tomita, e);
-    ok(!node, "tomita cannot parse a source into a parse forest without a grammar");
+    errors = tomita_parse_slice_into_forest(tomita, e);
+    ok(errors > 0, "tomita cannot parse a source into a parse forest without a grammar");
   } while (0);
   if (tomita) tomita_destroy(tomita);
 }

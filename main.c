@@ -13,13 +13,15 @@ static int opt_stack = 0;
 static int opt_table = 0;
 
 static unsigned process_line(Tomita* tomita, Slice line) {
+  unsigned errors = 0;
   LOG_INFO("parsing line [%.*s]", line.len, line.ptr);
   do {
-    struct Node* node = tomita_parse_slice_into_forest(tomita, line);
-    LOG_INFO("parsed input, got %p", node);
-    if (node) {
+    errors = tomita_parse_slice_into_forest(tomita, line);
+    if (errors) break;
+    LOG_INFO("parsed input, got %p", tomita->forest->root);
+    if (tomita->forest->root) {
       putchar('*');
-      node_show(node);
+      node_show(tomita->forest->root);
       putchar('.');
       putchar('\n');
     }
@@ -32,7 +34,7 @@ static unsigned process_line(Tomita* tomita, Slice line) {
       forest_show_stack(tomita->forest);
     }
   } while (0);
-  return 0;
+  return errors;
 }
 
 static unsigned process_path(Tomita* tomita, const char* path) {

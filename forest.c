@@ -5,23 +5,6 @@
 #include "util.h"
 #include "forest.h"
 
-// a reference-counted Subnode, stored as a linked list in a Node and a Path
-struct Subnode {
-  unsigned Size;
-  unsigned Cur;
-  unsigned ref_cnt;          // reference counted
-  struct Subnode* Next;      // link to next Subnode
-};
-
-// a Node
-struct Node {
-  Symbol* Sym;
-  unsigned Start;
-  unsigned Size;
-  unsigned Subs;
-  struct Subnode** Sub;
-};
-
 struct ZNode {
   unsigned Val;
   unsigned Size;
@@ -57,7 +40,7 @@ struct ERed {
 static void forest_prepare(Forest* forest);
 static void forest_cleanup(Forest* forest);
 static void forest_show_vertex(Forest* forest, unsigned W);
-static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** sym);
+static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** symbol);
 
 static void subnode_free(struct Subnode* A);
 static int subnode_equal(struct Subnode* A, struct Subnode* B);
@@ -69,7 +52,7 @@ static void AddN(Forest* forest, unsigned N, unsigned W);
 static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P);
 static void AddRRed(Forest* forest, struct ZNode* Z, Symbol* LHS, Symbol** RHS);
 static void AddERed(Forest* forest, unsigned W, Symbol* LHS);
-static struct State* NextState(Forest* forest, struct State* Q, Symbol* Sym);
+static struct State* NextState(Forest* forest, struct State* Q, Symbol* symbol);
 
 Forest* forest_create(Parser* parser) {
   Forest* forest = 0;
@@ -86,23 +69,23 @@ void forest_destroy(Forest* forest) {
 void forest_show(Forest* forest) {
   for (unsigned N = 0; N < forest->node_cap; ++N) {
     struct Node* Nd = &forest->node_table[N];
-    if (Nd->Sym->literal) continue;
+    if (Nd->symbol->literal) continue;
     node_show(Nd);
-    if (Nd->Subs > 0) {
-      struct Subnode* P = Nd->Sub[0];
+    if (Nd->sub_cap > 0) {
+      struct Subnode* P = Nd->sub_table[0];
       // we were not checking P in the next if
       // fix by gonzo
-      if (P && forest->node_table[P->Cur].Sym->literal) {
+      if (P && forest->node_table[P->Cur].symbol->literal) {
         putchar(':');
       } else {
         printf(" =");
       }
     }
-    for (unsigned S = 0; S < Nd->Subs; ++S) {
+    for (unsigned S = 0; S < Nd->sub_cap; ++S) {
       if (S > 0) {
         printf(" |");
       }
-      for (struct Subnode* P = Nd->Sub[S]; P != 0; P = P->Next) {
+      for (struct Subnode* P = Nd->sub_table[S]; P != 0; P = P->next) {
         struct Node* node = &forest->node_table[P->Cur];
         node_show(node);
       }
@@ -111,14 +94,9 @@ void forest_show(Forest* forest) {
   }
 }
 
-unsigned node_size(struct Node* node) {
-  if (node->Sym->literal) return 0;
-  return node->Subs;
-}
-
 void node_show(struct Node* node) {
-  Slice name = node->Sym->name;
-  if (node->Sym->literal) {
+  Slice name = node->symbol->name;
+  if (node->symbol->literal) {
     printf(" \"%.*s\"", name.len, name.ptr);
   }
   else {
@@ -163,6 +141,7 @@ static void forest_prepare(Forest* forest) {
   LOG_DEBUG("preparing forest");
 
   forest->position = 0;
+  forest->root = 0;
   forest->node_table = 0;
   forest->node_cap = 0;
   forest->node_pos = 0;
@@ -184,12 +163,13 @@ static void forest_cleanup(Forest* forest) {
   forest->prepared = 0;
   LOG_DEBUG("cleaning up forest");
 
+  forest->root = 0;
   for (unsigned N = 0; N < forest->node_cap; ++N) {
     struct Node* Nd = &forest->node_table[N];
-    for (unsigned S = 0; S < Nd->Subs; ++S) {
-      subnode_free(Nd->Sub[S]);
+    for (unsigned S = 0; S < Nd->sub_cap; ++S) {
+      subnode_free(Nd->sub_table[S]);
     }
-    FREE(Nd->Sub);
+    FREE(Nd->sub_table);
   }
   FREE(forest->node_table);
   forest->node_cap = 0;
@@ -211,7 +191,7 @@ static void forest_cleanup(Forest* forest) {
   forest->er_cap = forest->er_pos = 0;
 }
 
-struct Node* forest_parse(Forest* forest, Slice text) {
+unsigned forest_parse(Forest* forest, Slice text) {
   forest_cleanup(forest);
   forest_prepare(forest);
   AddQ(forest, &forest->parser->state_table[0]);
@@ -235,7 +215,7 @@ struct Node* forest_parse(Forest* forest, Slice text) {
     MALLOC(struct Subnode, P);
     P->Size = 1;
     P->Cur = subnode_add(forest, Word, 0);
-    P->Next = 0;
+    P->next = 0;
     P->ref_cnt = 0;
     unsigned VP = forest->vert_pos;
     forest->vert_pos = forest->vert_cap;
@@ -262,18 +242,19 @@ struct Node* forest_parse(Forest* forest, Slice text) {
   for (unsigned W = forest->vert_pos; W < forest->vert_cap; ++W) {
     struct Vertex* V = &forest->vert_table[W];
     if (V->Val->final) {
-      return &forest->node_table[V->List[0]->Val];
+      forest->root = &forest->node_table[V->List[0]->Val];
+      return 0;
     }
   }
-  return 0;
+  return 1;
 }
 
 static void subnode_free(struct Subnode* A) {
   while (A != 0) {
-    struct Subnode* Next = A->Next;
+    struct Subnode* next = A->next;
     UNREF(A);
     if (A) break;
-    A = Next;
+    A = next;
   }
 }
 
@@ -284,29 +265,29 @@ static unsigned subnode_add(Forest* forest, Symbol* L, struct Subnode* P) {
        : P->Size;
   for (N = forest->node_pos; N < forest->node_cap; ++N) {
     Nd = &forest->node_table[N];
-    if (Nd->Sym == L && Nd->Size == Size) break;
+    if (Nd->symbol == L && Nd->Size == Size) break;
   }
   if (N >= forest->node_cap) {
     TABLE_CHECK_GROW(forest->node_table, forest->node_cap, 8, struct Node);
     N = forest->node_cap++;
     Nd = &forest->node_table[N];
-    Nd->Sym = L;
+    Nd->symbol = L;
     Nd->Size = Size;
     Nd->Start = L->literal ? forest->position - 1
               : (P == 0)   ? forest->position
               : forest->node_table[P->Cur].Start;
-    Nd->Subs = 0;
-    Nd->Sub = 0;
+    Nd->sub_cap = 0;
+    Nd->sub_table = 0;
   }
   if (!L->literal) {
-    for (S = 0; S < Nd->Subs; ++S) {
-      if (subnode_equal(Nd->Sub[S], P)) break;
+    for (S = 0; S < Nd->sub_cap; ++S) {
+      if (subnode_equal(Nd->sub_table[S], P)) break;
     }
-    if (S >= Nd->Subs) {
-      TABLE_CHECK_GROW(Nd->Sub, Nd->Subs, 4, struct Subnode*);
+    if (S >= Nd->sub_cap) {
+      TABLE_CHECK_GROW(Nd->sub_table, Nd->sub_cap, 4, struct Subnode*);
       // we are adding a reference to this Subnode, increment its reference count
       // fix by gonzo
-      Nd->Sub[Nd->Subs++] = REF(P);
+      Nd->sub_table[Nd->sub_cap++] = REF(P);
     } else {
       subnode_free(P);
     }
@@ -315,7 +296,7 @@ static unsigned subnode_add(Forest* forest, Symbol* L, struct Subnode* P) {
 }
 
 static int subnode_equal(struct Subnode* A, struct Subnode* B) {
-  for (; A != 0 && B != 0; A = A->Next, B = B->Next)
+  for (; A != 0 && B != 0; A = A->next, B = B->next)
     if (A->Size != B->Size || A->Cur != B->Cur) return 0;
   return A == B; // NOTE: why?
 }
@@ -370,7 +351,7 @@ static void ReduceOne(Forest* forest, struct ZNode* Z, Symbol* L, Symbol** R) {
 
 static void AddN(Forest* forest, unsigned N, unsigned W) {
   struct Node* Nd = &forest->node_table[N];
-  struct State* S = NextState(forest, forest->vert_table[W].Val, Nd->Sym);
+  struct State* S = NextState(forest, forest->vert_table[W].Val, Nd->symbol);
   struct Vertex* W1;
   unsigned Z;
   struct ZNode* Z1;
@@ -442,7 +423,7 @@ static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
     REF(P);
   }
   NewP->Cur = N;
-  NewP->Next = P;
+  NewP->next = P;
   NewP->ref_cnt = 0;
   P = NewP;
   TABLE_CHECK_GROW(forest->path_table, forest->path_cap, 8, struct Path);
@@ -451,16 +432,16 @@ static void AddLink(Forest* forest, struct ZNode* Z, struct Subnode* P) {
   PP->P = P;
 }
 
-static struct State* NextState(Forest* forest, struct State* Q, Symbol* Sym) {
+static struct State* NextState(Forest* forest, struct State* Q, Symbol* symbol) {
   for (unsigned S = 0; S < Q->ss_cap; ++S) {
     struct Shift* Sh = &Q->ss_table[S];
-    if (Sh->symbol == Sym) return &forest->parser->state_table[Sh->state];
+    if (Sh->symbol == symbol) return &forest->parser->state_table[Sh->state];
   }
   return 0;
 }
 
-static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** sym) {
-  *sym = 0;
+static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** symbol) {
+  *symbol = 0;
   do {
     // skip whitespace
     while (pos < text.len && (text.ptr[pos] == ' ' || text.ptr[pos] == '\t')) ++pos;
@@ -478,10 +459,10 @@ static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** s
     unsigned beg = pos;
     while (pos < text.len && !isspace(text.ptr[pos])) ++pos;
     Slice name = slice_from_memory(text.ptr + beg, pos - beg);
-    *sym = symtab_lookup(forest->parser->symtab, name, 1, 1);
+    *symbol = symtab_lookup(forest->parser->symtab, name, 1, 1);
     ++forest->position;
   } while (0);
 
-  LOG_DEBUG("symbol %p [%.*s]", *sym, *sym ? (*sym)->name.len : 0, *sym ? (*sym)->name.ptr : 0);
+  LOG_DEBUG("symbol %p [%.*s]", *symbol, *symbol ? (*symbol)->name.len : 0, *symbol ? (*symbol)->name.ptr : 0);
   return pos;
 }
