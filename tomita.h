@@ -21,6 +21,9 @@
 #define GRAMMAR_EQ_TOKEN   '='
 #define GRAMMAR_START      '@'
 #define GRAMMAR_OR         '|'
+#define GRAMMAR_SLASH      '/'
+#define GRAMMAR_LT         '<'
+#define GRAMMAR_MINUS      '-'
 
 // Tomita is the boss
 typedef struct Tomita {

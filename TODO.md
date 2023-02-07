@@ -26,12 +26,7 @@
 
 ## Maybe ❓
 
-* Add support for `<-` (same as `:`) and `/` (same as `|`) in grammars, so that
-  it is easier to play around with, for example, the [Zig
-  grammar](https://ziglang.org/documentation/master/#Grammar), which is defined
-  using [PEG format](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
-
-* Support some form of lexing.  The current behavior is as a [scannerless
+* Support some form of lexing.  The current system behaves as a [scannerless
   parser](https://en.wikipedia.org/wiki/Scannerless_parsing):
   * The tokens are defined as part of the grammar.
   * The driver reads strings separated by white space and treats each string as
@@ -56,3 +51,7 @@
     step should print information about ambiguities in the input.
   * These steps should be "`make`-friendly" -- if a grammar definition has not
     changed, we should not have to regenerate the corresponding `parser`.
+* Add support for `<-` (same as `:`) and `/` (same as `|`) in grammars, so that
+  it is easier to play around with, for example, the [Zig
+  grammar](https://ziglang.org/documentation/master/#Grammar), which is defined
+  using [PEG format](https://en.wikipedia.org/wiki/Parsing_expression_grammar).

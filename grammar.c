@@ -22,7 +22,6 @@ static unsigned in_comment;
 
 static unsigned input_flush(Slice text, unsigned pos, Token* tok);
 static unsigned input_token(Slice text, unsigned pos, Token* tok);
-static void grammar_reset(Grammar* grammar);
 static unsigned grammar_check(Grammar* grammar);
 static void pad(unsigned padding);
 static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals);
@@ -36,9 +35,14 @@ Grammar* grammar_create(SymTab* symtab) {
 }
 
 void grammar_destroy(Grammar* grammar) {
-  grammar_reset(grammar);
+  grammar_clear(grammar);
   buffer_destroy(&grammar->source);
   FREE(grammar);
+}
+
+void grammar_clear(Grammar* grammar) {
+  buffer_clear(&grammar->source);
+  grammar->start = 0;
 }
 
 void grammar_show(Grammar* grammar) {
@@ -59,7 +63,7 @@ void grammar_show(Grammar* grammar) {
 }
 
 unsigned grammar_compile_from_slice(Grammar* grammar, Slice source) {
-  grammar_reset(grammar);
+  grammar_clear(grammar);
   buffer_append_slice(&grammar->source, source);
   Slice text = buffer_slice(&grammar->source);
 
@@ -167,7 +171,7 @@ unsigned grammar_compile_from_slice(Grammar* grammar, Slice source) {
 }
 
 unsigned grammar_load_from_slice(Grammar* grammar, Slice source) {
-  grammar_reset(grammar);
+  grammar_clear(grammar);
   buffer_append_slice(&grammar->source, source);
   Slice text = buffer_slice(&grammar->source);
 
@@ -311,6 +315,11 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
       ++pos;
       break;
     }
+    if (text.ptr[pos] == GRAMMAR_SLASH) {
+      tok->typ = OrT;
+      ++pos;
+      break;
+    }
     if (text.ptr[pos] == GRAMMAR_START) {
       tok->typ = StartT;
       ++pos;
@@ -324,6 +333,11 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
     if (text.ptr[pos] == GRAMMAR_EQ_RULE) {
       tok->typ = EqRuleT;
       ++pos;
+      break;
+    }
+    if (pos + 1 < text.len && text.ptr[pos+0] == GRAMMAR_LT && text.ptr[pos+1] == GRAMMAR_MINUS) {
+      tok->typ = EqRuleT;
+      pos += 2;
       break;
     }
     if (text.ptr[pos] == GRAMMAR_TERMINATOR) {
@@ -366,9 +380,4 @@ static unsigned input_token(Slice text, unsigned pos, Token* tok) {
 
   LOG_DEBUG("token type %u, value [%.*s]", tok->typ, tok->val.len, tok->val.ptr);
   return pos;
-}
-
-static void grammar_reset(Grammar* grammar) {
-  buffer_clear(&grammar->source);
-  grammar->start = 0;
 }

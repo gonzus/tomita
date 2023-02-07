@@ -2,17 +2,37 @@
 #include "util.h"
 #include "grammar.h"
 
+#define ALEN(a) (unsigned) (sizeof(a) / sizeof(a[0]))
+
 static void test_build_grammar(void) {
-  static const char* grammar_source =
-    "Expr : Expr '-' Expr"
-    "     | Expr '*' Expr"
-    "     | digit"
-    "     ;"
-    ""
-    "'-';"
-    "'*';"
-    "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
-  ;
+  typedef struct Data {
+    const char* name;
+    const char* rules;
+  } Data;
+  static Data grammars[] = {
+    {
+      "traditional yacc",
+      "Expr : Expr '-' Expr"
+      "     | Expr '*' Expr"
+      "     | digit"
+      "     ;"
+      ""
+      "'-';"
+      "'*';"
+      "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
+    },
+    {
+      "PEG style",
+      "Expr <- Expr '-' Expr"
+      "     /  Expr '*' Expr"
+      "     /  digit"
+      "     ;"
+      ""
+      "'-';"
+      "'*';"
+      "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
+    },
+  };
 
   unsigned errors = 0;
   SymTab* symtab = 0;
@@ -30,27 +50,31 @@ static void test_build_grammar(void) {
     ok(grammar != 0, "can create a grammar");
     if (!grammar) break;
 
-    Slice source = slice_from_string(grammar_source, 0);
-    errors = grammar_compile_from_slice(grammar, source);
-    ok(errors == 0, "can compile a grammar from source");
+    for (unsigned j = 0; j < ALEN(grammars); ++j) {
+      const char* name = grammars[j].name;
+      Slice source = slice_from_string(grammars[j].rules, 0);
+      errors = grammar_compile_from_slice(grammar, source);
+      ok(errors == 0, "can compile grammar '%s' from source", name);
 
-    buffer_clear(&compiled);
-    errors = grammar_save_to_buffer(grammar, &compiled);
-    ok(errors == 0, "can save a compiled grammar to a buffer");
-    Slice c = buffer_slice(&compiled);
-    ok(compiled.len > 0, "saved compiled grammar has a valid non-zero size of %u bytes", compiled.len);
+      buffer_clear(&compiled);
+      errors = grammar_save_to_buffer(grammar, &compiled);
+      ok(errors == 0, "can save compiled grammar '%s' to a buffer", name);
+      Slice c = buffer_slice(&compiled);
+      ok(compiled.len > 0, "saved compiled grammar '%s' has a valid non-zero size of %u bytes", name, compiled.len);
 
-    errors = grammar_load_from_slice(grammar, c);
-    ok(errors == 0, "can load a grammar from a buffer");
+      errors = grammar_load_from_slice(grammar, c);
+      ok(errors == 0, "can load grammar '%s' from a buffer", name);
 
-    buffer_clear(&loaded);
-    errors = grammar_save_to_buffer(grammar, &loaded);
-    ok(errors == 0, "can save a loaded grammar to a buffer");
-    Slice l = buffer_slice(&loaded);
-    ok(loaded.len > 0, "saved loaded grammar has a valid non-zero size of %u bytes", loaded.len);
+      buffer_clear(&loaded);
+      errors = grammar_save_to_buffer(grammar, &loaded);
+      ok(errors == 0, "can save loaded grammar '%s' to a buffer", name);
+      Slice l = buffer_slice(&loaded);
+      ok(loaded.len > 0, "saved loaded grammar '%s' has a valid non-zero size of %u bytes", name, loaded.len);
 
-    ok(slice_equal(c, l), "compiled and loaded grammars are identical");
-
+      ok(slice_equal(c, l), "compiled and loaded grammars '%s' are identical", name);
+      grammar_clear(grammar);
+      symtab_clear(symtab);
+    }
   } while (0);
   buffer_destroy(&loaded);
   buffer_destroy(&compiled);

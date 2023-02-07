@@ -17,6 +17,9 @@ Grammar* grammar_create(SymTab* symtab);
 // Destroy a grammar created with grammar_create().
 void grammar_destroy(Grammar* grammar);
 
+// Clear all contents of a grammar -- leave it as just created.
+void grammar_clear(Grammar* grammar);
+
 // Print a grammar in a human-readable format.
 void grammar_show(Grammar* grammar);
 
