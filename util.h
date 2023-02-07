@@ -6,6 +6,9 @@
 // quiet down the compiler about an unused variable
 #define UNUSED(x) (void) x
 
+// compute the length on an array
+#define ALEN(a) (unsigned) (sizeof(a) / sizeof(a[0]))
+
 // Read the contents of a file given by path, into a Buffer.
 // Return the number of bytes read.
 unsigned file_slurp(const char* path, Buffer* b);

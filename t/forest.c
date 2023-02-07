@@ -2,8 +2,6 @@
 #include "util.h"
 #include "forest.h"
 
-#define ALEN(a) (unsigned) (sizeof(a) / sizeof(a[0]))
-
 static void test_build_forest(void) {
   static const char* grammar_source =
     "Expr : Expr '-' Expr"

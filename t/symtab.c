@@ -2,8 +2,6 @@
 #include "util.h"
 #include "symtab.h"
 
-#define ALEN(a) (unsigned) (sizeof(a) / sizeof(a[0]))
-
 static void test_build_symtab(void) {
   struct Data {
     const char* name;

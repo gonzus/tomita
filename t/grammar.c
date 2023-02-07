@@ -2,8 +2,6 @@
 #include "util.h"
 #include "grammar.h"
 
-#define ALEN(a) (unsigned) (sizeof(a) / sizeof(a[0]))
-
 static void test_build_grammar(void) {
   typedef struct Data {
     const char* name;
