@@ -2,6 +2,12 @@
 
 ## Definitely 👍
 
+* Add support for quantifiers in a grammar definition:
+  * zero or one, AKA optional: `A?`, `(A b C)?`.
+  * zero or more, AKA [Kleene star](https://en.wikipedia.org/wiki/Kleene_star):
+    `A*`, `(A b C)*`.
+  * one or more, AKA [Kleene plus](https://en.wikipedia.org/wiki/Kleene_star#Kleene_plus):
+    `A+`, `(A b C)+`.
 * Define a sane way to add actions to the grammar, so that the generated parser
   can do more than just parsing.
   * Use code generation / templates?  This forces us to have a template for
@@ -14,17 +20,22 @@
 
 ## Probably 🤔
 
-* Support some form of lexing.  The current behavior is:
-  * The tokens are defined as part of the grammar.
-  * The driver reads strings separated by white space and treats each string as
-    a token to be passed to the parser.
 * Map the implementation to some form of reference document that describes the
   algorithm.  It should be possible to map each major routine to each part of
   the algorithm.
 
 ## Maybe ❓
 
-* Not sure yet...
+* Add support for `<-` (same as `:`) and `/` (same as `|`) in grammars, so that
+  it is easier to play around with, for example, the [Zig
+  grammar](https://ziglang.org/documentation/master/#Grammar), which is defined
+  using [PEG format](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
+
+* Support some form of lexing.  The current behavior is as a [scannerless
+  parser](https://en.wikipedia.org/wiki/Scannerless_parsing):
+  * The tokens are defined as part of the grammar.
+  * The driver reads strings separated by white space and treats each string as
+    a token to be passed to the parser.
 
 ## Already done 🔥
 * Print information about any conflicts found in the grammar (`shift/reduce`,
