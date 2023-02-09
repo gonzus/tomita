@@ -18,15 +18,7 @@ static unsigned process_line(Tomita* tomita, Slice line) {
   do {
     errors = tomita_parse_slice_into_forest(tomita, line);
     if (errors) break;
-    LOG_INFO("parsed input, got %p", tomita->forest->root);
-    if (tomita->forest->root) {
-      putchar('*');
-      node_show(tomita->forest->root);
-      putchar('.');
-      putchar('\n');
-    }
-
-    LOG_INFO("complete forest:");
+    LOG_INFO("parsed input, got forest:");
     forest_show(tomita->forest);
 
     if (opt_stack) {

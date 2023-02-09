@@ -68,8 +68,6 @@ static void test_build_forest(void) {
       ok(forest->root->sub_cap == exprs[j].branches, "root node for '%s' has the expected %d branches", expr, exprs[j].branches);
 
 #if 0
-      node_show(forest->root);
-      printf("\n");
       forest_show(forest);
 #endif
     }

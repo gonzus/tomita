@@ -41,6 +41,7 @@ static void forest_prepare(Forest* forest);
 static void forest_cleanup(Forest* forest);
 static void forest_show_vertex(Forest* forest, unsigned W);
 static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** symbol);
+static void node_show(struct Node* node);
 
 static void subnode_free(struct Subnode* A);
 static int subnode_equal(struct Subnode* A, struct Subnode* B);
@@ -70,6 +71,7 @@ void forest_show(Forest* forest) {
   for (unsigned N = 0; N < forest->node_cap; ++N) {
     struct Node* Nd = &forest->node_table[N];
     if (Nd->symbol->literal) continue;
+    printf("%c", Nd == forest->root ? '*' : ' ');
     node_show(Nd);
     if (Nd->sub_cap > 0) {
       struct Subnode* P = Nd->sub_table[0];
@@ -94,7 +96,7 @@ void forest_show(Forest* forest) {
   }
 }
 
-void node_show(struct Node* node) {
+static void node_show(struct Node* node) {
   Slice name = node->symbol->name;
   if (node->symbol->literal) {
     printf(" \"%.*s\"", name.len, name.ptr);

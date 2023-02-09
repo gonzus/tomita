@@ -62,6 +62,3 @@ void forest_show(Forest* forest);
 
 // Print the forest stack in a human-readable format.
 void forest_show_stack(Forest* forest);
-
-// Print a node in a human-readable format.
-void node_show(struct Node* node);
