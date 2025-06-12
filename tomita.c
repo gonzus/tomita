@@ -30,7 +30,7 @@ void tomita_clear(Tomita* tomita) {
   clear_symtab(tomita);
 }
 
-unsigned tomita_show_grammar(Tomita* tomita) {
+unsigned tomita_grammar_show(Tomita* tomita) {
   unsigned errors = 0;
   do {
     if (!tomita->grammar) {
@@ -43,7 +43,7 @@ unsigned tomita_show_grammar(Tomita* tomita) {
   return errors;
 }
 
-unsigned tomita_compile_grammar_from_slice(Tomita* tomita, Slice grammar) {
+unsigned tomita_grammar_compile_from_slice(Tomita* tomita, Slice grammar) {
   unsigned errors = 0;
   do {
     reset_grammar(tomita);
@@ -52,7 +52,7 @@ unsigned tomita_compile_grammar_from_slice(Tomita* tomita, Slice grammar) {
   return errors;
 }
 
-unsigned tomita_read_grammar_from_slice(Tomita* tomita, Slice grammar) {
+unsigned tomita_grammar_read_from_slice(Tomita* tomita, Slice grammar) {
   unsigned errors = 0;
   do {
     reset_grammar(tomita);
@@ -62,7 +62,7 @@ unsigned tomita_read_grammar_from_slice(Tomita* tomita, Slice grammar) {
   return errors;
 }
 
-unsigned tomita_write_grammar_to_buffer(Tomita* tomita, Buffer* b) {
+unsigned tomita_grammar_write_to_buffer(Tomita* tomita, Buffer* b) {
   unsigned errors = 0;
   do {
     if (!tomita->grammar) {
@@ -76,7 +76,7 @@ unsigned tomita_write_grammar_to_buffer(Tomita* tomita, Buffer* b) {
   return errors;
 }
 
-unsigned tomita_show_parser(Tomita* tomita) {
+unsigned tomita_parser_show(Tomita* tomita) {
   unsigned errors = 0;
   do {
     if (!tomita->parser) {
@@ -89,7 +89,7 @@ unsigned tomita_show_parser(Tomita* tomita) {
   return errors;
 }
 
-unsigned tomita_build_parser_from_grammar(Tomita* tomita) {
+unsigned tomita_parser_build_from_grammar(Tomita* tomita) {
   unsigned errors = 0;
   do {
     if (!tomita->grammar) {
@@ -103,7 +103,7 @@ unsigned tomita_build_parser_from_grammar(Tomita* tomita) {
   return errors;
 }
 
-unsigned tomita_read_parser_from_slice(Tomita* tomita, Slice parser) {
+unsigned tomita_parser_read_from_slice(Tomita* tomita, Slice parser) {
   unsigned errors = 0;
   do {
     reset_symtab(tomita);
@@ -113,7 +113,7 @@ unsigned tomita_read_parser_from_slice(Tomita* tomita, Slice parser) {
   return errors;
 }
 
-unsigned tomita_write_parser_to_buffer(Tomita* tomita, Buffer* b) {
+unsigned tomita_parser_write_to_buffer(Tomita* tomita, Buffer* b) {
   unsigned errors = 0;
   do {
     if (!tomita->parser) {
@@ -127,7 +127,7 @@ unsigned tomita_write_parser_to_buffer(Tomita* tomita, Buffer* b) {
   return errors;
 }
 
-unsigned tomita_show_forest(Tomita* tomita) {
+unsigned tomita_forest_show(Tomita* tomita) {
   unsigned errors = 0;
   do {
     if (!tomita->forest) {
@@ -140,7 +140,7 @@ unsigned tomita_show_forest(Tomita* tomita) {
   return errors;
 }
 
-unsigned tomita_parse_slice_into_forest(Tomita* tomita, Slice source) {
+unsigned tomita_forest_parse_from_slice(Tomita* tomita, Slice source) {
   unsigned errors = 0;
   do {
     if (!tomita->parser) {

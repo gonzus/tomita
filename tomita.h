@@ -43,17 +43,17 @@ void tomita_destroy(Tomita* tomita);
 void tomita_clear(Tomita* tomita);
 
 // grammar functions
-unsigned tomita_show_grammar(Tomita* tomita);
-unsigned tomita_compile_grammar_from_slice(Tomita* tomita, Slice grammar);
-unsigned tomita_read_grammar_from_slice(Tomita* tomita, Slice grammar);
-unsigned tomita_write_grammar_to_buffer(Tomita* tomita, Buffer* b);
+unsigned tomita_grammar_show(Tomita* tomita);
+unsigned tomita_grammar_compile_from_slice(Tomita* tomita, Slice grammar);
+unsigned tomita_grammar_read_from_slice(Tomita* tomita, Slice grammar);
+unsigned tomita_grammar_write_to_buffer(Tomita* tomita, Buffer* b);
 
 // parser functions
-unsigned tomita_show_parser(Tomita* tomita);
-unsigned tomita_build_parser_from_grammar(Tomita* tomita);
-unsigned tomita_read_parser_from_slice(Tomita* tomita, Slice parser);
-unsigned tomita_write_parser_to_buffer(Tomita* tomita, Buffer* b);
+unsigned tomita_parser_show(Tomita* tomita);
+unsigned tomita_parser_build_from_grammar(Tomita* tomita);
+unsigned tomita_parser_read_from_slice(Tomita* tomita, Slice parser);
+unsigned tomita_parser_write_to_buffer(Tomita* tomita, Buffer* b);
 
 // forest functions
-unsigned tomita_show_forest(Tomita* tomita);
-unsigned tomita_parse_slice_into_forest(Tomita* tomita, Slice source);
+unsigned tomita_forest_show(Tomita* tomita);
+unsigned tomita_forest_parse_from_slice(Tomita* tomita, Slice source);

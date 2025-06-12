@@ -16,7 +16,7 @@ static unsigned process_line(Tomita* tomita, Slice line) {
   unsigned errors = 0;
   LOG_INFO("parsing line [%.*s]", line.len, line.ptr);
   do {
-    errors = tomita_parse_slice_into_forest(tomita, line);
+    errors = tomita_forest_parse_from_slice(tomita, line);
     if (errors) break;
     LOG_INFO("parsed input, got forest:");
     forest_show(tomita->forest);
@@ -121,20 +121,20 @@ int main(int argc, char **argv) {
     Slice raw = buffer_slice(&data);
     Slice text_grammar = slice_trim(raw);
     timer_start(&timer);
-    errors = tomita_compile_grammar_from_slice(tomita, text_grammar);
+    errors = tomita_grammar_compile_from_slice(tomita, text_grammar);
     timer_stop(&timer);
     if (errors) break;
     LOG_INFO("compiled grammar from source in %luus", timer_elapsed_us(&timer));
 
-    if (opt_grammar) tomita_show_grammar(tomita);
+    if (opt_grammar) tomita_grammar_show(tomita);
 
     timer_start(&timer);
-    errors = tomita_build_parser_from_grammar(tomita);
+    errors = tomita_parser_build_from_grammar(tomita);
     timer_stop(&timer);
     if (errors) break;
     LOG_INFO("built parser from grammar in %luus", timer_elapsed_us(&timer));
 
-    if (opt_table) tomita_show_parser(tomita);
+    if (opt_table) tomita_parser_show(tomita);
 
     for (int j = 0; j < argc; ++j) {
       errors = process_path(tomita, argv[j]);
