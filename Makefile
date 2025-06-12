@@ -32,7 +32,6 @@ LIBRARY = lib$(NAME).a
 
 C_SRC_LIB = \
 	buffer.c \
-	console.c \
 	forest.c \
 	grammar.c \
 	log.c \

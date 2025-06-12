@@ -1,17 +1,17 @@
 #include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "stb_sprintf.h"
-#include "console.h"
 #include "log.h"
 #include "memory.h"
 
 static void dump_line(int row, const char* byte, int white, const char* text) {
-    console_printf("%06x | %s%*s | %-16s |\n", row, byte, white, "", text);
+    fprintf(stderr, "%06x | %s%*s | %-16s |\n", row, byte, white, "", text);
 }
 
 void dump_bytes(const void* ptr, size_t len) {
-    console_printf("bytes at %p, len %lu\n", ptr, len);
+    fprintf(stderr, "bytes at %p, len %lu\n", ptr, len);
     char byte[16*3+1];
     int bpos = 0;
     char text[16+1];
