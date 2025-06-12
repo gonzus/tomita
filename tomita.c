@@ -1,5 +1,9 @@
 #include "mem.h"
 #include "log.h"
+#include "grammar.h"
+#include "parser.h"
+#include "forest.h"
+#include "symtab.h"
 #include "tomita.h"
 
 static void clear_forest(Tomita* tomita);
@@ -56,7 +60,6 @@ unsigned tomita_grammar_read_from_slice(Tomita* tomita, Slice grammar) {
   unsigned errors = 0;
   do {
     reset_grammar(tomita);
-    // TODO: make names uniform
     errors += grammar_load_from_slice(tomita->grammar, grammar);
   } while (0);
   return errors;
@@ -70,7 +73,6 @@ unsigned tomita_grammar_write_to_buffer(Tomita* tomita, Buffer* b) {
       ++errors;
       break;
     }
-  // TODO: make names uniform
     errors += grammar_save_to_buffer(tomita->grammar, b);
   } while (0);
   return errors;
@@ -107,7 +109,6 @@ unsigned tomita_parser_read_from_slice(Tomita* tomita, Slice parser) {
   unsigned errors = 0;
   do {
     reset_symtab(tomita);
-    // TODO: make names uniform
     errors += parser_load_from_slice(tomita->parser, parser);
   } while (0);
   return errors;
@@ -121,7 +122,6 @@ unsigned tomita_parser_write_to_buffer(Tomita* tomita, Buffer* b) {
       ++errors;
       break;
     }
-  // TODO: make names uniform
     errors += parser_save_to_buffer(tomita->parser, b);
   } while (0);
   return errors;

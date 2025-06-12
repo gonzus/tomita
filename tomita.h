@@ -1,9 +1,6 @@
 #pragma once
 
-#include "symtab.h"
-#include "grammar.h"
-#include "parser.h"
-#include "forest.h"
+#include "buffer.h"
 
 #define FORMAT_COMMENT     '#'
 #define FORMAT_GRAMMAR     'G'
@@ -27,10 +24,10 @@
 
 // Tomita is the boss
 typedef struct Tomita {
-  SymTab* symtab;
-  Grammar* grammar;
-  Parser* parser;
-  Forest* forest;
+  struct SymTab* symtab;
+  struct Grammar* grammar;
+  struct Parser* parser;
+  struct Forest* forest;
 } Tomita;
 
 // Create an empty Tomita.

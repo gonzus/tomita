@@ -1,6 +1,7 @@
 #pragma once
 
-#include <assert.h>
+// TODO: get rid of this file!
+
 #include <stdlib.h>
 #include <string.h>
 

@@ -1,5 +1,7 @@
 #include <tap.h>
 #include "util.h"
+#include "symtab.h"
+#include "grammar.h"
 #include "parser.h"
 
 static void test_build_parser(void) {

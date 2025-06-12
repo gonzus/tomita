@@ -3,6 +3,7 @@
 #include "log.h"
 #include "timer.h"
 #include "util.h"
+#include "forest.h"
 #include "tomita.h"
 
 #define MAX_BUF (1024*1024)

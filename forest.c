@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include "log.h"
 #include "mem.h"
-#include "util.h"
+#include "symbol.h"
+#include "symtab.h"
+#include "parser.h"
 #include "forest.h"
 
 struct ZNode {

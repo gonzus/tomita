@@ -3,6 +3,8 @@
 #include "mem.h"
 #include "util.h"
 #include "tomita.h"
+#include "symbol.h"
+#include "symtab.h"
 #include "grammar.h"
 
 typedef enum { EndT, StartT, EqTokenT, EqRuleT, OrT, IdenT, TermT } TokenType;

@@ -1,5 +1,8 @@
 #include <tap.h>
 #include "util.h"
+#include "symtab.h"
+#include "grammar.h"
+#include "parser.h"
 #include "forest.h"
 
 static void test_build_forest(void) {

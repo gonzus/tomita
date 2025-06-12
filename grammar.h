@@ -1,18 +1,16 @@
 #pragma once
 
-#include "slice.h"
 #include "buffer.h"
-#include "symtab.h"
 
 // a grammar, including a symbol table
 typedef struct Grammar {
   Buffer source;             // copy of the source
-  SymTab* symtab;            // the symbol table
-  Symbol* start;             // the start symbol
+  struct SymTab* symtab;            // the symbol table
+  struct Symbol* start;             // the start symbol
 } Grammar;
 
 // Create an empty grammar.
-Grammar* grammar_create(SymTab* symtab);
+Grammar* grammar_create(struct SymTab* symtab);
 
 // Destroy a grammar created with grammar_create().
 void grammar_destroy(Grammar* grammar);

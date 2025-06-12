@@ -1,7 +1,9 @@
 #include "log.h"
 #include "mem.h"
 #include "util.h"
+#include "grammar.h"
 #include "tomita.h"
+#include "symtab.h"
 #include "parser.h"
 
 // a reference-counted Item containing:

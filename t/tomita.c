@@ -1,5 +1,6 @@
 #include <tap.h>
 #include "util.h"
+#include "forest.h"
 #include "tomita.h"
 
 static const char* grammar_source =

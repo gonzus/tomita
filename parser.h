@@ -1,8 +1,9 @@
 #pragma once
 
 #include "buffer.h"
-#include "symtab.h"
-#include "grammar.h"
+#include "symbol.h"
+
+struct Grammar;
 
 // a Shift action
 // also used to represent gotos, when symbol is a non-terminal
@@ -31,14 +32,14 @@ struct State {
 // a Parser
 typedef struct Parser {
   Buffer source;             // copy of the source
-  SymTab* symtab;            // the symbol table
+  struct SymTab* symtab;            // the symbol table
   struct State* state_table; // state table
   unsigned state_cap;        // capacity of state and items tables
 } Parser;
 
 
 // Create a parser that uses a given SymTab.
-Parser* parser_create(SymTab* symtab);
+Parser* parser_create(struct SymTab* symtab);
 
 // Destroy a parser created with parser_create().
 void parser_destroy(Parser* parser);
@@ -48,7 +49,7 @@ void parser_show(Parser* parser);
 
 // Build a parser from a given grammar.
 // Return number of errors found (so 0 => ok)
-unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar);
+unsigned parser_build_from_grammar(Parser* parser, struct Grammar* grammar);
 
 // Load a parser from a slice.
 // Format for loaded contents are "proprietary".

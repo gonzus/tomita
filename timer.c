@@ -1,4 +1,3 @@
-#include "util.h"
 #include "timer.h"
 
 void timer_start(Timer* t) {

@@ -1,6 +1,5 @@
 #include "mem.h"
 #include "log.h"
-#include "buffer.h"
 #include "util.h"
 #include "tomita.h"
 #include "symtab.h"

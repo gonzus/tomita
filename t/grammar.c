@@ -1,5 +1,6 @@
 #include <tap.h>
 #include "util.h"
+#include "symtab.h"
 #include "grammar.h"
 
 static void test_build_grammar(void) {

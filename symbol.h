@@ -1,7 +1,6 @@
 #pragma once
 
 #include "buffer.h"
-#include "slice.h"
 
 typedef struct RuleSet {
   unsigned index;          // sequential ruleset number
