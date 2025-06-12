@@ -14,18 +14,21 @@ AFLAGS += -fsanitize=address   # cannot be used with thread
 # AFLAGS += -fsanitize=thread  # cannot be used with address
 # AFLAGS += -fsanitize=memory  # not supported on M1
 
+TAP_DIR = ../libtap
+
 CFLAGS += $(AFLAGS)
 CFLAGS += -c
 CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
 CFLAGS += -D_GNU_SOURCE -D_XOPEN_SOURCE -D_POSIX_C_SOURCE=200809L
-CFLAGS += -I. -I/usr/local/include
+CFLAGS += -I.
+CFLAGS += -I/usr/local/include
+CFLAGS += -I$(TAP_DIR)
 
 LDFLAGS += $(AFLAGS)
 LDFLAGS += -L. -L/usr/local/lib
+LDFLAGS += -L$(TAP_DIR)
 
 LIBRARY = lib$(NAME).a
-
-all: tom  ## (re)build everything
 
 C_SRC_LIB = \
 	buffer.c \
@@ -39,11 +42,9 @@ C_SRC_LIB = \
 	stb.c \
 	symbol.c \
 	symtab.c \
-	tomita.c \
 	timer.c \
+	tomita.c \
 	util.c \
-
-LIBS =
 
 C_OBJ_LIB = $(C_SRC_LIB:.c=.o)
 
@@ -58,15 +59,17 @@ C_EXE_TEST = $(patsubst %.c, %, $(C_SRC_TEST))
 	$(CC) $(CFLAGS) -o $@ $^
 
 tom: main.o $(LIBRARY)  ## build main executable
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(LD) $(LDFLAGS) -o $@ $^
 
 $(C_EXE_TEST): %: %.o $(LIBRARY)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -ltap
+	$(CC) $(LDFLAGS) -o $@ $^ -ltap
 
 tests: $(C_EXE_TEST) ## build all tests
 
 test: tests ## run all tests
 	@for t in $(C_EXE_TEST); do ./$$t; done
+
+all: tom  ## (re)build everything
 
 clean:  ## clean everything
 	rm -f *.o
@@ -76,4 +79,4 @@ clean:  ## clean everything
 help: ## display this help
 	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' /dev/null $(MAKEFILE_LIST) | sort | awk -F: '{ sub(/.*##/, "", $$3); printf("\033[36;1m%-30s\033[0m %s\n", $$2, $$3); }'
 
-.PHONY: all clean help
+.PHONY: all clean help test tests

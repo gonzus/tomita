@@ -152,7 +152,7 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
 }
 
 void parser_show(Parser* parser) {
-  printf("#         accept:  ACCEPT\n");
+  printf("#         accept:  ACCEPT seq\n");
   printf("#   normal shift:  t => state\n");
   printf("# epsilon reduce:  [A -> state]\n");
   printf("#  normal reduce:  [A => B t C]\n");
@@ -170,8 +170,8 @@ void parser_show(Parser* parser) {
       switch (pass) {
         case 0:
           if (St->final) {
-            printf("\tACCEPT\n");
             ++accept_count;
+            printf("\tACCEPT %u\n", accept_count);
           }
           break;
 
@@ -214,10 +214,10 @@ void parser_show(Parser* parser) {
             struct Shift* shift = &St->ss_table[j];
             Symbol* symbol = shift->symbol;
             Slice name = symbol->name;
-            unsigned is_shift = symbol->literal ? 1 : !symbol->rs_cap;
-            if (is_shift) {
+            unsigned num_shift = symbol->literal ? 1 : !symbol->rs_cap;
+            if (num_shift > 0) {
               printf("\t%.*s => %d\n", name.len, name.ptr, shift->state);
-              shift_count += is_shift;
+              shift_count += num_shift;
             }
           }
           break;
@@ -227,8 +227,8 @@ void parser_show(Parser* parser) {
             struct Shift* shift = &St->ss_table[j];
             Symbol* symbol = shift->symbol;
             Slice name = symbol->name;
-            unsigned is_shift = symbol->literal ? 1 : !symbol->rs_cap;
-            if (!is_shift) {
+            unsigned num_shift = symbol->literal ? 1 : !symbol->rs_cap;
+            if (num_shift == 0) {
               printf("\t%.*s goto %d\n", name.len, name.ptr, shift->state);
             }
           }
