@@ -2,14 +2,20 @@
 
 ## Definitely 👍
 
+* Allow specifying grammar elements with full words:
+  * Right now we assume non-terminals are a single uppercase character.
+  * Right now we assume terminals are a single lowercase character
+    (surrounded by double quotes it seems?).
+  * We would need a way to specify terminals (tokens);
+    then non-terminals are "the rest".
 * Add support for quantifiers in a grammar definition:
   * zero or one, AKA optional: `A?`, `(A b C)?`.
   * zero or more, AKA [Kleene star](https://en.wikipedia.org/wiki/Kleene_star):
     `A*`, `(A b C)*`.
   * one or more, AKA [Kleene plus](https://en.wikipedia.org/wiki/Kleene_star#Kleene_plus):
     `A+`, `(A b C)+`.
-* Define a sane way to add actions to the grammar, so that the generated parser
-  can do more than just parsing.
+* Define a sane way to add actions to the grammar,
+  so that the generated parser can do more than just parsing:
   * Use code generation / templates?  This forces us to have a template for
     each target language we wish to support, and to be able to at least
     understand some of the syntax for each language.
@@ -31,6 +37,7 @@
   * The tokens are defined as part of the grammar.
   * The driver reads strings separated by white space and treats each string as
     a token to be passed to the parser.
+  * It *might be faster*, but it is also **less powerful**.
 
 ## Already done 🔥
 * Print information about any conflicts found in the grammar (`shift/reduce`,
