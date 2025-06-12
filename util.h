@@ -28,3 +28,6 @@ unsigned next_number(Slice line, unsigned pos, unsigned* number);
 // Parse a slice, starting at pos, for a string with format [XXXXX] (brackets included).
 // Return the updated pos.
 unsigned next_string(Slice line, unsigned pos, Slice* string);
+
+// Dump a block of bytes into stderr with nice formatting.
+void dump_bytes(const void* ptr, size_t len);

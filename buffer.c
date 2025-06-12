@@ -1,3 +1,4 @@
+#include <string.h>
 #include "stb_sprintf.h"
 #include "memory.h"
 #include "buffer.h"
@@ -22,7 +23,7 @@ void buffer_build(Buffer* b) {
 void buffer_destroy(Buffer* b) {
     if (BUFFER_FLAG_CHK(b, BUFFER_FLAG_PTR_IN_HEAP)) {
         BUFFER_FLAG_CLR(b, BUFFER_FLAG_PTR_IN_HEAP);
-        MEMORY_FREE_ARRAY(b->ptr, char, b->cap);
+        b->ptr = memory_realloc(b->ptr, 0);
     }
 }
 
@@ -140,10 +141,9 @@ void buffer_format_print(Buffer* b, const char* fmt, ...) {
 }
 
 static void buffer_adjust(Buffer* b, uint32_t cap) {
-    char* tmp = 0;
-    MEMORY_ADJUST(tmp, b->ptr, b->cap, cap);
-    b->ptr = tmp;
-    b->cap = cap;
+  char* tmp = memory_realloc(b->ptr, cap); 
+  b->ptr = tmp;
+  b->cap = cap;
 }
 
 static void buffer_append_ptr_len(Buffer* b, const char* ptr, uint32_t len) {
