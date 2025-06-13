@@ -40,7 +40,6 @@ struct ERed {
 };
 
 static void forest_prepare(Forest* forest);
-static void forest_cleanup(Forest* forest);
 static void forest_show_vertex(Forest* forest, unsigned W);
 static unsigned next_symbol(Forest* forest, Slice text, unsigned pos, Symbol** symbol);
 static void node_show(struct Node* node);
@@ -65,7 +64,7 @@ Forest* forest_create(Parser* parser) {
 }
 
 void forest_destroy(Forest* forest) {
-  forest_cleanup(forest);
+  forest_clear(forest);
   FREE(forest);
 }
 
@@ -162,7 +161,7 @@ static void forest_prepare(Forest* forest) {
   forest->er_pos = 0;
 }
 
-static void forest_cleanup(Forest* forest) {
+void forest_clear(Forest* forest) {
   if (!forest->prepared) return;
   forest->prepared = 0;
   LOG_DEBUG("cleaning up forest");
@@ -196,7 +195,7 @@ static void forest_cleanup(Forest* forest) {
 }
 
 unsigned forest_parse(Forest* forest, Slice text) {
-  forest_cleanup(forest);
+  forest_clear(forest);
   forest_prepare(forest);
   AddQ(forest, &forest->parser->state_table[0]);
   unsigned pos = 0;

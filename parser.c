@@ -26,7 +26,6 @@ struct Items {
   unsigned item_cap;         //   capacity of table
 };
 
-static void parser_reset(Parser* parser);
 static struct Item* item_make(Symbol* LHS, Symbol** RHS, unsigned index);
 static struct Items* items_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, unsigned* XMax);
 static void item_add(struct Items* Q, struct Item* It);
@@ -44,13 +43,28 @@ Parser* parser_create(SymTab* symtab) {
 }
 
 void parser_destroy(Parser* parser) {
-  parser_reset(parser);
+  parser_clear(parser);
   buffer_destroy(&parser->source);
   FREE(parser);
 }
 
+void parser_clear(Parser* parser) {
+  if (parser->state_table) {
+    for (unsigned j = 0; j < parser->state_cap; ++j) {
+      struct State* state = &parser->state_table[j];
+      FREE(state->er_table);
+      FREE(state->rr_table);
+      FREE(state->ss_table);
+    }
+    FREE (parser->state_table);
+  }
+  buffer_clear(&parser->source);
+  parser->state_table = 0;
+  parser->state_cap = 0;
+}
+
 unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
-  parser_reset(parser);
+  parser_clear(parser);
   parser->symtab = grammar->symtab;
 
   // Create initial state
@@ -245,7 +259,7 @@ void parser_show(Parser* parser) {
 }
 
 unsigned parser_load_from_slice(Parser* parser, Slice source) {
-  parser_reset(parser);
+  parser_clear(parser);
   buffer_append_slice(&parser->source, source);
   Slice text = buffer_slice(&parser->source);
 
@@ -505,19 +519,4 @@ static int item_compare(struct Item* A, struct Item* B) {
   }
 
   return Diff;
-}
-
-static void parser_reset(Parser* parser) {
-  if (parser->state_table) {
-    for (unsigned j = 0; j < parser->state_cap; ++j) {
-      struct State* state = &parser->state_table[j];
-      FREE(state->er_table);
-      FREE(state->rr_table);
-      FREE(state->ss_table);
-    }
-    FREE (parser->state_table);
-  }
-  buffer_clear(&parser->source);
-  parser->state_table = 0;
-  parser->state_cap = 0;
 }

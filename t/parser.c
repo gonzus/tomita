@@ -40,6 +40,10 @@ static void test_build_parser(void) {
     errors = parser_build_from_grammar(parser, grammar);
     ok(errors == 0, "can build a parser from a grammar");
 
+#if 0
+    parser_show(parser);
+#endif
+
     buffer_clear(&compiled);
     errors = parser_save_to_buffer(parser, &compiled);
     ok(errors == 0, "can save a compiled parser to a buffer");

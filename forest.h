@@ -52,6 +52,9 @@ Forest* forest_create(struct Parser* parser);
 // Destroy a forest created with forest_create().
 void forest_destroy(Forest* forest);
 
+// Clear all contents of a forest -- leave it as just created.
+void forest_clear(Forest* forest);
+
 // Parse some text, populating the parse forest, including its root node.
 // Return 0 if all went well, or the number of errors found.
 unsigned forest_parse(Forest* forest, Slice text);

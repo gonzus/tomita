@@ -43,6 +43,10 @@ static void test_build_grammar(void) {
       errors = grammar_compile_from_slice(grammar, source);
       ok(errors == 0, "can compile grammar '%s' from source", name);
 
+#if 0
+      grammar_show(grammar);
+#endif
+
       buffer_clear(&compiled);
       errors = grammar_save_to_buffer(grammar, &compiled);
       ok(errors == 0, "can save compiled grammar '%s' to a buffer", name);

@@ -44,6 +44,9 @@ Parser* parser_create(struct SymTab* symtab);
 // Destroy a parser created with parser_create().
 void parser_destroy(Parser* parser);
 
+// Clear all contents of a parser -- leave it as just created.
+void parser_clear(Parser* parser);
+
 // Print a parser in a human-readable format.
 void parser_show(Parser* parser);
 
