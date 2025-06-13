@@ -1,36 +1,18 @@
 #include <tap.h>
+#include "buffer.h"
 #include "util.h"
 #include "symtab.h"
 #include "grammar.h"
 
+
 static void test_build_grammar(void) {
   typedef struct Data {
+    const char* file;
     const char* name;
-    const char* rules;
   } Data;
   static Data grammars[] = {
-    {
-      "traditional yacc",
-      "Expr : Expr '-' Expr"
-      "     | Expr '*' Expr"
-      "     | digit"
-      "     ;"
-      ""
-      "'-';"
-      "'*';"
-      "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
-    },
-    {
-      "PEG style",
-      "Expr <- Expr '-' Expr"
-      "     /  Expr '*' Expr"
-      "     /  digit"
-      "     ;"
-      ""
-      "'-';"
-      "'*';"
-      "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
-    },
+    { "t/fixtures/yacc.grammar", "traditional yacc" },
+    { "t/fixtures/peg.grammar", "PEG style" },
   };
 
   unsigned errors = 0;
@@ -38,6 +20,7 @@ static void test_build_grammar(void) {
   Grammar* grammar = 0;
   Buffer compiled; buffer_build(&compiled);
   Buffer loaded; buffer_build(&loaded);
+  Buffer grammar_src; buffer_build(&grammar_src);
   do {
     ok(1, "=== TESTING grammar ===");
 
@@ -51,7 +34,12 @@ static void test_build_grammar(void) {
 
     for (unsigned j = 0; j < ALEN(grammars); ++j) {
       const char* name = grammars[j].name;
-      Slice source = slice_from_string(grammars[j].rules, 0);
+
+      buffer_clear(&grammar_src);
+      unsigned bytes = file_slurp(grammars[j].file, &grammar_src);
+      ok(bytes > 0, "grammar source for '%s' can be read, it has %u bytes", name, bytes);
+      Slice source = buffer_slice(&grammar_src);
+
       errors = grammar_compile_from_slice(grammar, source);
       ok(errors == 0, "can compile grammar '%s' from source", name);
 
@@ -76,6 +64,7 @@ static void test_build_grammar(void) {
       // printf(">>>\n%.*s<<<\n", c.len, c.ptr);
     }
   } while (0);
+  buffer_destroy(&grammar_src);
   buffer_destroy(&loaded);
   buffer_destroy(&compiled);
   if (grammar) grammar_destroy(grammar);

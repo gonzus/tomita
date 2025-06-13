@@ -3,31 +3,26 @@
 #include "forest.h"
 #include "tomita.h"
 
-static const char* grammar_source =
-  "Expr : Expr '-' Expr"
-  "     | Expr '*' Expr"
-  "     | digit"
-  "     ;"
-  ""
-  "'-';"
-  "'*';"
-  "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
-;
-static const char* expr_source =
-  "2 - 3 * 4"
-;
+#define GRAMMAR_EXPR "t/fixtures/expr.grammar"
 
 static void test_tomita_build_and_parse_ok(void) {
+  static const char* expr_source =
+    "2 - 3 * 4"
+  ;
   unsigned errors = 0;
   Tomita* tomita = 0;
+  Buffer grammar_src; buffer_build(&grammar_src);
   do {
     ok(1, "=== TESTING tomita good ===");
+
+    unsigned bytes = file_slurp(GRAMMAR_EXPR, &grammar_src);
+    ok(bytes > 0, "grammar fixture can be read, it has %u bytes", bytes);
 
     tomita = tomita_create();
     ok(tomita != 0, "can create a Tomita");
     if (!tomita) break;
 
-    Slice g = slice_from_string(grammar_source, 0);
+    Slice g = buffer_slice(&grammar_src);
     errors = tomita_grammar_compile_from_slice(tomita, g);
     ok(errors == 0, "tomita can compile a grammar from source");
 
@@ -39,6 +34,7 @@ static void test_tomita_build_and_parse_ok(void) {
     ok(errors == 0, "tomita can parse a source into a parse forest");
     ok(tomita->forest->root->sub_cap == 2, "root node has the expected %d branches", 2);
   } while (0);
+  buffer_destroy(&grammar_src);
   if (tomita) tomita_destroy(tomita);
 }
 
@@ -80,14 +76,18 @@ static void test_tomita_build_without_grammar(void) {
 static void test_tomita_build_without_parser(void) {
   unsigned errors = 0;
   Tomita* tomita = 0;
+  Buffer grammar_src; buffer_build(&grammar_src);
   do {
     ok(1, "=== TESTING tomita without paser ===");
+
+    unsigned bytes = file_slurp(GRAMMAR_EXPR, &grammar_src);
+    ok(bytes > 0, "grammar fixture can be read, it has %u bytes", bytes);
 
     tomita = tomita_create();
     ok(tomita != 0, "can create a Tomita");
     if (!tomita) break;
 
-    Slice g = slice_from_string(grammar_source, 0);
+    Slice g = buffer_slice(&grammar_src);
     errors = tomita_grammar_compile_from_slice(tomita, g);
     ok(errors == 0, "tomita can compile a grammar from source");
 
@@ -95,6 +95,7 @@ static void test_tomita_build_without_parser(void) {
     errors = tomita_forest_parse_from_slice(tomita, e);
     ok(errors > 0, "tomita cannot parse a source into a parse forest without a grammar");
   } while (0);
+  buffer_destroy(&grammar_src);
   if (tomita) tomita_destroy(tomita);
 }
 

@@ -5,17 +5,9 @@
 #include "parser.h"
 #include "forest.h"
 
+#define GRAMMAR_EXPR "t/fixtures/expr.grammar"
+
 static void test_build_forest(void) {
-  static const char* grammar_source =
-    "Expr : Expr '-' Expr"
-    "     | Expr '*' Expr"
-    "     | digit"
-    "     ;"
-    ""
-    "'-';"
-    "'*';"
-    "digit = '0' '1' '2' '3' '4' '5' '6' '7' '8' '9';"
-  ;
   typedef struct Expr {
     int value;
     unsigned branches;
@@ -34,8 +26,12 @@ static void test_build_forest(void) {
   Grammar* grammar = 0;
   Parser* parser = 0;
   Forest* forest = 0;
+  Buffer grammar_src; buffer_build(&grammar_src);
   do {
     ok(1, "=== TESTING forest ===");
+
+    unsigned bytes = file_slurp(GRAMMAR_EXPR, &grammar_src);
+    ok(bytes > 0, "grammar fixture can be read, it has %u bytes", bytes);
 
     symtab = symtab_create();
     ok(symtab != 0, "can create a symtab");
@@ -45,7 +41,7 @@ static void test_build_forest(void) {
     ok(grammar != 0, "can create a grammar");
     if (!grammar) break;
 
-    Slice g = slice_from_string(grammar_source, 0);
+    Slice g = buffer_slice(&grammar_src);
     errors = grammar_compile_from_slice(grammar, g);
     ok(errors == 0, "can compile a grammar from source");
 
@@ -75,6 +71,7 @@ static void test_build_forest(void) {
 #endif
     }
   } while (0);
+  buffer_destroy(&grammar_src);
   if (forest) forest_destroy(forest);
   if (parser) parser_destroy(parser);
   if (grammar) grammar_destroy(grammar);
