@@ -1,31 +1,39 @@
 .DEFAULT_GOAL := all
 
+OS := $(shell uname -s)
+
 NAME = tomita
 
-# CC = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
-# LD = /Users/gonzo/homebrew/Cellar/llvm/15.0.7_1/bin/clang
 CC = cc
 LD = cc
 
 AFLAGS += -std=c11
 AFLAGS += -g
+
+ifeq ($(OS),Darwin)
+# Linux also has sanitizers, but valgrind is more valuable there.
 AFLAGS += -fsanitize=undefined
 AFLAGS += -fsanitize=address   # cannot be used with thread
 # AFLAGS += -fsanitize=thread  # cannot be used with address
 # AFLAGS += -fsanitize=memory  # not supported on M1
+endif
 
 TAP_DIR = ../libtap
 
 CFLAGS += $(AFLAGS)
 CFLAGS += -c
 CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
-CFLAGS += -D_GNU_SOURCE -D_XOPEN_SOURCE -D_POSIX_C_SOURCE=200809L
 CFLAGS += -I.
 CFLAGS += -I/usr/local/include
 CFLAGS += -I$(TAP_DIR)
+ifeq ($(OS),Linux)
+CFLAGS += -D_GNU_SOURCE
+CFLAGS += -D_XOPEN_SOURCE
+endif
 
 LDFLAGS += $(AFLAGS)
-LDFLAGS += -L. -L/usr/local/lib
+LDFLAGS += -L.
+LDFLAGS += -L/usr/local/lib
 LDFLAGS += -L$(TAP_DIR)
 
 LIBRARY = lib$(NAME).a
@@ -67,6 +75,12 @@ tests: $(C_EXE_TEST) ## build all tests
 
 test: tests ## run all tests
 	@for t in $(C_EXE_TEST); do ./$$t; done
+
+ifeq ($(OS),Linux)
+# Linux has valgrind!
+valgrind: tests ## run all tests under valgrind
+	@for t in $(C_EXE_TEST); do valgrind --leak-check=full ./$$t; done
+endif
 
 all: tom  ## (re)build everything
 
