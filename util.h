@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdio.h>
 #include "buffer.h"
 
 // quiet down the compiler about an unused variable
@@ -30,4 +29,4 @@ unsigned next_number(Slice line, unsigned pos, unsigned* number);
 unsigned next_string(Slice line, unsigned pos, Slice* string);
 
 // Dump a block of bytes into stderr with nice formatting.
-void dump_bytes(const void* ptr, size_t len);
+void dump_bytes(const void* ptr, unsigned len);

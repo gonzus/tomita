@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdio.h>
 #include "log.h"
 #include "mem.h"
 #include "util.h"

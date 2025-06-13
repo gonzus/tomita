@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdio.h>
 #include <sys/stat.h>
 #include "stb_sprintf.h"
 #include "log.h"
@@ -93,8 +94,8 @@ static void dump_line(int row, const char* byte, int white, const char* text) {
     fprintf(stderr, "%06x | %s%*s | %-16s |\n", row, byte, white, "", text);
 }
 
-void dump_bytes(const void* ptr, size_t len) {
-    fprintf(stderr, "bytes at %p, len %lu\n", ptr, len);
+void dump_bytes(const void* ptr, unsigned len) {
+    fprintf(stderr, "bytes at %p, len %u\n", ptr, len);
     char byte[16*3+1];
     int bpos = 0;
     char text[16+1];
@@ -102,7 +103,7 @@ void dump_bytes(const void* ptr, size_t len) {
     int row = 0;
     int col = 0;
     unsigned char* ucp = (unsigned char*) ptr;
-    for (size_t j = 0; j < len; ++j) {
+    for (unsigned j = 0; j < len; ++j) {
         unsigned char uc = ucp[j];
         unsigned int ui = (unsigned int) uc;
         bpos += stbsp_sprintf(byte + bpos, "%s%02x", col ? " " : "", ui);
