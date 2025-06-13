@@ -7,6 +7,15 @@
 #include "symtab.h"
 #include "grammar.h"
 
+/* Input format derived from the syntax:
+   Grammar = Rule+.
+   Rule = "*" ID "."
+        | ID "."
+        | ID "=" ID* ("|" ID*)* "."
+        | ID ":" ID+ "."
+        .
+ */
+
 typedef enum { EndT, StartT, EqTokenT, EqRuleT, OrT, IdenT, TermT } TokenType;
 
 typedef struct Token {
