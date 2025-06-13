@@ -4,15 +4,17 @@
 #include "symbol.h"
 
 // TODO: make hash table growable?
-#define HASH_MAX 0x100
+enum {
+  SYMTAB_HASH_MAX = 0x100,
+};
 
 // a symbol (hash) table
 typedef struct SymTab {
-  unsigned symbol_counter;   // to create sequential indexes for symbols
-  unsigned rules_counter;    // to create sequential indexes for rulesets
-  Symbol* table[HASH_MAX];   // the actual table
-  Symbol* first;             // the first symbol seen
-  Symbol* last;              // the last symbol seen
+  unsigned symbol_counter;        // to create sequential indexes for symbols
+  unsigned rules_counter;         // to create sequential indexes for rulesets
+  Symbol* table[SYMTAB_HASH_MAX]; // the actual table
+  Symbol* first;                  // the first symbol seen
+  Symbol* last;                   // the last symbol seen
 } SymTab;
 
 // Create an empty symbol table.

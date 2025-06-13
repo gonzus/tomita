@@ -12,7 +12,7 @@ struct Subnode {
 
 // a node of a parse forest; it points to all possible parsed branches
 struct Node {
-  struct Symbol* symbol;            // symbol pointed to by this node
+  struct Symbol* symbol;     // symbol pointed to by this node
   unsigned Start;
   unsigned Size;
   struct Subnode** sub_table;// table of branches for node
@@ -21,7 +21,7 @@ struct Node {
 
 // a parse forest, which contains one or more parse trees
 typedef struct Forest {
-  struct Parser* parser;            // the parser used to create this parse forest
+  struct Parser* parser;     // the parser used to create this parse forest
   int prepared;              // is this forest prepared, or was it cleaned up?
   unsigned position;         // sequential position value
 

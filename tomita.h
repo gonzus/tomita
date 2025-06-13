@@ -2,25 +2,29 @@
 
 #include "buffer.h"
 
-#define FORMAT_COMMENT     '#'
-#define FORMAT_GRAMMAR     'G'
-#define FORMAT_SYMTAB      'S'
-#define FORMAT_SYMBOL      'y'
-#define FORMAT_RULE        'u'
-#define FORMAT_PARSER      'P'
-#define FORMAT_STATE       'T'
-#define FORMAT_SHIFT       's'
-#define FORMAT_REDUCE      'r'
-#define FORMAT_EPSILON     'e'
+enum TomitaFormat {
+  FORMAT_COMMENT     = '#',
+  FORMAT_GRAMMAR     = 'G',
+  FORMAT_SYMTAB      = 'S',
+  FORMAT_SYMBOL      = 'y',
+  FORMAT_RULE        = 'u',
+  FORMAT_PARSER      = 'P',
+  FORMAT_STATE       = 'T',
+  FORMAT_SHIFT       = 's',
+  FORMAT_REDUCE      = 'r',
+  FORMAT_EPSILON     = 'e',
+};
 
-#define GRAMMAR_TERMINATOR ';'
-#define GRAMMAR_EQ_RULE    ':'
-#define GRAMMAR_EQ_TOKEN   '='
-#define GRAMMAR_START      '@'
-#define GRAMMAR_OR         '|'
-#define GRAMMAR_SLASH      '/'
-#define GRAMMAR_LT         '<'
-#define GRAMMAR_MINUS      '-'
+enum TomitaGrammar {
+  GRAMMAR_TERMINATOR = ';',
+  GRAMMAR_EQ_RULE    = ':',
+  GRAMMAR_EQ_TOKEN   = '=',
+  GRAMMAR_START      = '@',
+  GRAMMAR_OR         = '|',
+  GRAMMAR_SLASH      = '/',
+  GRAMMAR_LT         = '<',
+  GRAMMAR_MINUS      = '-',
+};
 
 // Tomita is the boss
 typedef struct Tomita {

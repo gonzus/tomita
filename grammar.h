@@ -5,8 +5,8 @@
 // a grammar, including a symbol table
 typedef struct Grammar {
   Buffer source;             // copy of the source
-  struct SymTab* symtab;            // the symbol table
-  struct Symbol* start;             // the start symbol
+  struct SymTab* symtab;     // the symbol table
+  struct Symbol* start;      // the start symbol
 } Grammar;
 
 // Create an empty grammar.

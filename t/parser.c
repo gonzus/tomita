@@ -60,6 +60,7 @@ static void test_build_parser(void) {
     ok(loaded.len > 0, "saved loaded parser has a valid non-zero size of %u bytes", loaded.len);
 
     ok(slice_equal(c, l), "compiled and loaded parsers are identical");
+    // printf(">>>\n%.*s<<<\n", c.len, c.ptr);
 
   } while (0);
   buffer_destroy(&loaded);

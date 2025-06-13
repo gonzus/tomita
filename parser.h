@@ -32,7 +32,7 @@ struct State {
 // a Parser
 typedef struct Parser {
   Buffer source;             // copy of the source
-  struct SymTab* symtab;            // the symbol table
+  struct SymTab* symtab;     // the symbol table
   struct State* state_table; // state table
   unsigned state_cap;        // capacity of state and items tables
 } Parser;

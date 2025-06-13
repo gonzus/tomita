@@ -7,8 +7,10 @@
 // A work buffer for pointers to symbols, used to store rules.
 // Once a rule is completed, we make a call to symbol_insert_rule(), which
 // copies all the pointers into rules, and then reset the work buffer.
-#define MAX_SYM 0x100
-static Symbol* sym_buf[MAX_SYM];
+enum {
+  SYMTAB_MAX_SYM = 0x100,
+};
+static Symbol* sym_buf[SYMTAB_MAX_SYM];
 static Symbol** sym_pos;
 
 SymTab* symtab_create(void) {
@@ -23,7 +25,7 @@ void symtab_destroy(SymTab* symtab) {
 }
 
 void symtab_clear(SymTab* symtab) {
-  for (unsigned h = 0; h < HASH_MAX; ++h) {
+  for (unsigned h = 0; h < SYMTAB_HASH_MAX; ++h) {
     for (Symbol* sym = symtab->table[h]; sym != 0; ) {
       Symbol* tmp = sym;
       sym = sym->nxt_hash;
@@ -42,7 +44,7 @@ static unsigned char hash(Slice string) {
   for (unsigned pos = 0; pos < string.len; ++pos) {
     H = (H << 1) ^ string.ptr[pos];
   }
-  return H & (HASH_MAX - 1);
+  return H & (SYMTAB_HASH_MAX - 1);
 }
 
 Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, unsigned char insert) {

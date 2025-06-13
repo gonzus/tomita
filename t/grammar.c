@@ -73,6 +73,7 @@ static void test_build_grammar(void) {
       ok(slice_equal(c, l), "compiled and loaded grammars '%s' are identical", name);
       grammar_clear(grammar);
       symtab_clear(symtab);
+      // printf(">>>\n%.*s<<<\n", c.len, c.ptr);
     }
   } while (0);
   buffer_destroy(&loaded);

@@ -96,6 +96,7 @@ static void test_build_symtab(void) {
     ok(l.len > 0, "saved loaded symtab has a valid non-zero size of %u bytes", l.len);
 
     ok(slice_equal(c, l), "created and loaded grammars are identical");
+    // printf(">>>\n%.*s<<<\n", c.len, c.ptr);
   } while (0);
   buffer_destroy(&loaded);
   buffer_destroy(&created);
