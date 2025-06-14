@@ -318,7 +318,7 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
         pos = next_number(line, pos, &state);
         LOG_DEBUG("loaded shift: index=%u, state=%u", index, state);
         struct Shift* shift = &parser->state_table[state_tot-1].ss_table[t];
-        shift->symbol = find_symbol_by_index(parser->symtab, index);
+        shift->symbol = symtab_find_symbol_by_index(parser->symtab, index);
         shift->state = state;
         continue;
       }
@@ -330,9 +330,9 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
         pos = next_number(line, pos, &rs_index);
         LOG_DEBUG("loaded reduce: lhs=%u rs=%u", lhs_index, rs_index);
         struct Reduce* reduce = &parser->state_table[state_tot-1].rr_table[t];
-        Symbol* lhs = find_symbol_by_index(parser->symtab, lhs_index);
+        Symbol* lhs = symtab_find_symbol_by_index(parser->symtab, lhs_index);
         assert(lhs);
-        RuleSet* rs = find_ruleset_by_index(lhs, rs_index);
+        RuleSet* rs = symbol_find_ruleset_by_index(lhs, rs_index);
         assert(rs);
         reduce->lhs = lhs;
         reduce->rs = *rs;
@@ -344,7 +344,7 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
         pos = next_number(line, pos, &index);
         LOG_DEBUG("loaded epsilon: index=%u", index);
         struct Symbol** epsilon = &parser->state_table[state_tot-1].er_table[t];
-        Symbol* symbol = find_symbol_by_index(parser->symtab, index);
+        Symbol* symbol = symtab_find_symbol_by_index(parser->symtab, index);
         *epsilon = symbol;
         continue;
       }

@@ -103,7 +103,7 @@ void symbol_save_rules(Symbol* symbol, Buffer* b) {
   }
 }
 
-RuleSet* find_ruleset_by_index(Symbol* symbol, unsigned index) {
+RuleSet* symbol_find_ruleset_by_index(Symbol* symbol, unsigned index) {
   // TODO: make this more efficient
   for (unsigned j = 0; j < symbol->rs_cap; ++j) {
     RuleSet* rs = &symbol->rs_table[j];

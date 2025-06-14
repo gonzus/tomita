@@ -40,4 +40,4 @@ void symbol_save_definition(Symbol* symbol, Buffer* b);
 void symbol_save_rules(Symbol* symbol, Buffer* b);
 
 // Find a ruleset for a symbol given its index.
-RuleSet* find_ruleset_by_index(Symbol* symbol, unsigned index);
+RuleSet* symbol_find_ruleset_by_index(Symbol* symbol, unsigned index);

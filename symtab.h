@@ -30,7 +30,8 @@ void symtab_clear(SymTab* symtab);
 // Return the found / created symbol, or null if not found and not created.
 Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, unsigned char insert);
 
-Symbol* find_symbol_by_index(SymTab* symtab, unsigned index);
+// Find the symbol in the symbol table with the given index.
+Symbol* symtab_find_symbol_by_index(SymTab* symtab, unsigned index);
 
 // Load a symbol table from a given path.
 // Format for file contents are "proprietary".

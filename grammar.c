@@ -202,7 +202,7 @@ unsigned grammar_load_from_slice(Grammar* grammar, Slice source) {
       if (lead == FORMAT_GRAMMAR) {
         unsigned index = 0;
         pos = next_number(line, pos, &index);
-        Symbol* start = find_symbol_by_index(grammar->symtab, index);
+        Symbol* start = symtab_find_symbol_by_index(grammar->symtab, index);
         assert(start);
         grammar->start = start;
         LOG_DEBUG("loaded grammar: start=%u", index);

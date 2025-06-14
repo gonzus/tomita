@@ -127,7 +127,7 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
         pos = next_number(line, pos, &rs_index);
         pos = next_number(line, pos, &lhs_index);
         LOG_DEBUG("loaded rule: lhs=%u, rs=%u", lhs_index, rs_index);
-        Symbol* lhs = find_symbol_by_index(symtab, lhs_index);
+        Symbol* lhs = symtab_find_symbol_by_index(symtab, lhs_index);
         assert(lhs);
         sym_pos = sym_buf;
         while (1) {
@@ -135,7 +135,7 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
           pos = next_number(line, pos, &rhs_index);
           if (pos == 0) break;
           LOG_DEBUG("   rhs=%u", rhs_index);
-          *sym_pos++ = find_symbol_by_index(symtab, rhs_index);
+          *sym_pos++ = symtab_find_symbol_by_index(symtab, rhs_index);
         }
         *sym_pos++ = 0;
         symbol_insert_rule(lhs, sym_buf, sym_pos, 0, rs_index);
@@ -177,7 +177,7 @@ unsigned symtab_save_to_buffer(SymTab* symtab, Buffer* b) {
   return 0;
 }
 
-Symbol* find_symbol_by_index(SymTab* symtab, unsigned index) {
+Symbol* symtab_find_symbol_by_index(SymTab* symtab, unsigned index) {
   // TODO: make this more efficient
   for (Symbol* symbol = symtab->first; symbol != 0; symbol = symbol->nxt_list) {
     if (symbol->index == index) {
