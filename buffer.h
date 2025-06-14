@@ -11,39 +11,43 @@
  * Do NOT use with C standard strXXX() functions.
  */
 
+#include "slice.h"
 #include <stdarg.h>
 #include <stdint.h>
-#include "slice.h"
 
+// clang-format off
 #define BUFFER_FLAG_SET(b, f) do { (b)->flg |= ( f); } while (0)
 #define BUFFER_FLAG_CLR(b, f) do { (b)->flg &= (~f); } while (0)
 #define BUFFER_FLAG_CHK(b, f)    ( (b)->flg &  ( f) )
+// clang-format on
 
 // Flags used for a Buffer.
-#define BUFFER_FLAG_BUF_IN_HEAP (1U<<0)
-#define BUFFER_FLAG_PTR_IN_HEAP (1U<<1)
+#define BUFFER_FLAG_BUF_IN_HEAP (1U << 0)
+#define BUFFER_FLAG_PTR_IN_HEAP (1U << 1)
 
 // Total size we want Buffer struct to have.
 #define BUFFER_DESIRED_SIZE 64UL
 
 // Total size used up by Buffer fields, EXCEPT buf.
 // MUST BE KEPT IN SYNC WITH DECLARATION OF struct Buffer.
+// clang-format off
 #define BUFFER_FIELDS_SIZE (\
     sizeof(char*)     /* ptr */ + \
     sizeof(uint32_t)  /* cap */ + \
     sizeof(uint32_t)  /* len */ + \
     sizeof(uint8_t)   /* flg */ + \
     0)
+// clang-format on
 
 // Size allowed for a Buffer's static data array.
 #define BUFFER_DATA_SIZE (BUFFER_DESIRED_SIZE - BUFFER_FIELDS_SIZE)
 
 typedef struct Buffer {
-    char* ptr;                    // pointer to beginning of data
-    uint32_t cap;                 // total data capacity
-    uint32_t len;                 // current buffer length
-    uint8_t flg;                  // flags for Buffer
-    char buf[BUFFER_DATA_SIZE];   // stack space for small Buffer
+  char *ptr;                  // pointer to beginning of data
+  uint32_t cap;               // total data capacity
+  uint32_t len;               // current buffer length
+  uint8_t flg;                // flags for Buffer
+  char buf[BUFFER_DATA_SIZE]; // stack space for small Buffer
 } Buffer;
 
 #if __STDC_VERSION__ >= 201112L
@@ -53,67 +57,82 @@ static_assert(sizeof(Buffer) == BUFFER_DESIRED_SIZE, "Buffer has wrong size");
 #endif
 
 // Clear the contents of Buffer -- does NOT reallocate current memory.
-#define buffer_clear(b) \
-    do { \
-        (b)->len = 0; \
-    } while (0)
+#define buffer_clear(b)                                                        \
+  do {                                                                         \
+    (b)->len = 0;                                                              \
+  } while (0)
 
 // Append a NUL (\0) character to the buffer
-#define buffer_null_terminate(b) \
-    do { \
-        buffer_append_byte(b, '\0'); \
-    } while (0)
+#define buffer_null_terminate(b)                                               \
+  do {                                                                         \
+    buffer_append_byte(b, '\0');                                               \
+  } while (0)
 
 // Ensure buffer has space for extra bytes.
-#define buffer_ensure_extra(b, extra) \
-    do { \
-        uint32_t total = (extra) + (b)->len; \
-        if (total > (b)->cap) { \
-            buffer_ensure_total(b, total); \
-        } \
-    } while (0)
+#define buffer_ensure_extra(b, extra)                                          \
+  do {                                                                         \
+    uint32_t total = (extra) + (b)->len;                                       \
+    if (total > (b)->cap) {                                                    \
+      buffer_ensure_total(b, total);                                           \
+    }                                                                          \
+  } while (0)
+
+// Get pointer to next place where data will go
+#define buffer_data_ptr(b) ((b)->ptr + (b)->len)
+
+// Get size of unused data
+#define buffer_data_len(b) ((b)->cap - (b)->len)
+
+// Get size of unused data
+#define buffer_adjust_forward(b, bytes)                                        \
+  do {                                                                         \
+    (b)->len += bytes;                                                         \
+  } while (0)
 
 // Buffer default constructor.
-void buffer_build(Buffer* b);
+void buffer_build(Buffer *b);
 
 // Buffer destructor.
-void buffer_destroy(Buffer* b);
+void buffer_destroy(Buffer *b);
 
 // Ensure buffer has space for total bytes.
-void buffer_ensure_total(Buffer* b, uint32_t total);
+void buffer_ensure_total(Buffer *b, uint32_t total);
 
 // Create a slice that wraps the contents of the buffer.
-Slice buffer_slice(const Buffer* b);
+Slice buffer_slice(const Buffer *b);
 
 // Reallocate memory so that current data fits exactly into Buffer.
-void buffer_pack(Buffer* b);
+void buffer_pack(Buffer *b);
 
 // Set contents of Buffer to a Slice, optionally null-terminated.
-void buffer_set_to_slice(Buffer* b, Slice s, bool zero);
+void buffer_set_to_slice(Buffer *b, Slice s, bool zero);
 
 // Append a single byte to current contents of Buffer.
-void buffer_append_byte(Buffer* b, char t);
+void buffer_append_byte(Buffer *b, char t);
 
 // Append a string of given length to current contents of Buffer.
 // If len < 0, use null terminator, otherwise copy len bytes.
-void buffer_append_string(Buffer* b, const char* str, int len);
+void buffer_append_string(Buffer *b, const char *str, int len);
 
 // Append a slice to current contents of Buffer.
-void buffer_append_slice(Buffer* b, Slice s);
+void buffer_append_slice(Buffer *b, Slice s);
 
 // Append a buffer to current contents of Buffer.
-void buffer_append_buffer(Buffer* b, const Buffer* buf);
+void buffer_append_buffer(Buffer *b, const Buffer *buf);
+
+// Append contents of a hex string ("ba031944") to current contents of Buffer.
+void buffer_append_hex(Buffer *b, const char *hex);
 
 // Append a formatted signed / unsigned integer to current contents of Buffer.
-void buffer_format_signed(Buffer* b, long long l);
-void buffer_format_unsigned(Buffer* b, unsigned long long l);
+void buffer_format_signed(Buffer *b, long long l);
+void buffer_format_unsigned(Buffer *b, unsigned long long l);
 
 // Append a formatted double to current contents of Buffer.
-void buffer_format_double(Buffer* b, double d);
+void buffer_format_double(Buffer *b, double d);
 
 // Append a printf-formatted string to current contents of Buffer.
 // THESE ARE EXPENSIVE.
-void buffer_format_print(Buffer* b, const char* fmt, ...);
-void buffer_format_vprint(Buffer* b, const char* fmt, va_list ap);
+void buffer_format_print(Buffer *b, const char *fmt, ...);
+void buffer_format_vprint(Buffer *b, const char *fmt, va_list ap);
 
 #endif

@@ -1,5 +1,4 @@
-#ifndef SLICE_H_
-#define SLICE_H_
+#pragma once
 
 /*
  * Slice -- a purely value type
@@ -24,14 +23,14 @@
  */
 
 typedef struct Slice {
-    const char* ptr; // pointer to beginning of data
-    uint32_t len;    // length of data
+  const char *ptr; // pointer to beginning of data
+  uint32_t len;    // length of data
 } Slice;
 
 // "context" when calling functions to tokenize
 typedef struct SliceLookup {
-    char map[256];
-    Slice result;
+  char map[256];
+  Slice result;
 } SliceLookup;
 
 // Return true if Slice is empty (invalid ptr OR zero len).
@@ -43,12 +42,11 @@ typedef struct SliceLookup {
 
 // Slice constructor from a string (const char*).
 // If len < 0, use null terminator, otherwise copy len bytes.
-Slice slice_from_string(const char* str, int len);
+Slice slice_from_string(const char *str, int len);
 
 // Slice constructor from a pointer and a length.
 // Pointed data doesn't have to be null-terminated.
-Slice slice_from_memory(const char* ptr, uint32_t len);
-
+Slice slice_from_memory(const char *ptr, uint32_t len);
 
 /*
  * Slice algorithms.
@@ -65,11 +63,11 @@ Slice slice_trim(Slice s);
 
 // Convert a slice to an integer.
 // Return 0 if conversion is not possible, 1 otherwise.
-int slice_integer(Slice s, long int* val);
+int slice_integer(Slice s, long int *val);
 
 // Convert a slice to a real.
 // Return 0 if conversion is not possible, 1 otherwise.
-int slice_real(Slice s, double* val);
+int slice_real(Slice s, double *val);
 
 // Compare two Slices, returning: l < r: -1; l > r: 1; l == r: 0
 int slice_compare(Slice l, Slice r);
@@ -82,17 +80,17 @@ Slice slice_find_byte(Slice s, char t);
 // Return an empty slice if not found.
 Slice slice_find_slice(Slice s, Slice t);
 
-// Tokenize Slice by repeatedly searching for any character in a separator slice.
-// Return true if separator was found, false otherwise.
-// Return each token in lookup.result; only valid when true was returned.
-// Intended to be used like this:
+// Tokenize Slice by repeatedly searching for any character in a separator
+// slice. Return true if separator was found, false otherwise. Return each token
+// in lookup.result; only valid when true was returned. Intended to be used like
+// this:
 //
 //   Slice sep = slice_from_string(":", 0);
 //   SliceLookup lookup = {0};
 //   while (slice_tokenize_by_slice(src, sep, &lookup)) {
 //     // do something with lookup.result
 //   }
-bool slice_tokenize_by_slice(Slice src, Slice sep, SliceLookup* lookup);
+bool slice_tokenize_by_slice(Slice src, Slice sep, SliceLookup *lookup);
 
 // Tokenize Slice by repeatedly searching for a separator character.
 // Return true if separator was found, false otherwise.
@@ -103,7 +101,7 @@ bool slice_tokenize_by_slice(Slice src, Slice sep, SliceLookup* lookup);
 //   while (slice_tokenize_by_byte(src, ':', &lookup)) {
 //     // do something with lookup.result
 //   }
-bool slice_tokenize_by_byte(Slice src, char t, SliceLookup* lookup);
+bool slice_tokenize_by_byte(Slice src, char t, SliceLookup *lookup);
 
 // Split a slice on a given character, into left and right parts.
 // Return true if character was found, false otherwise.
@@ -111,7 +109,5 @@ bool slice_tokenize_by_byte(Slice src, char t, SliceLookup* lookup);
 // if not found, left = slice, right = empty
 // When searching right to left.
 // if not found, left = empty, right = slice
-int slice_split_by_byte_l2r(Slice s, char t, Slice* l, Slice* r);
-int slice_split_by_byte_r2l(Slice s, char t, Slice* l, Slice* r);
-
-#endif
+int slice_split_by_byte_l2r(Slice s, char t, Slice *l, Slice *r);
+int slice_split_by_byte_r2l(Slice s, char t, Slice *l, Slice *r);
