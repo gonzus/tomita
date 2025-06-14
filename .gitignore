@@ -2,7 +2,7 @@
 **/*.a
 **/*.dSYM
 **/.DS_Store
-tom
+tomita
 
 tmp/
 t/symtab

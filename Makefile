@@ -67,7 +67,7 @@ C_EXE_TEST = $(patsubst %.c, %, $(C_SRC_TEST))
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-tom: main.o $(LIBRARY)  ## build main executable
+$(NAME): main.o $(LIBRARY)  ## build main executable
 	$(LD) $(LDFLAGS) -o $@ $^
 
 $(C_EXE_TEST): %: %.o $(LIBRARY)
@@ -80,15 +80,15 @@ test: tests ## run all tests
 
 ifeq ($(OS),Linux)
 # Linux has valgrind!
-valgrind: tests ## run all tests under valgrind
+valgrind: tests ## run all tests under valgrind (Linux only)
 	@for t in $(C_EXE_TEST); do valgrind --leak-check=full ./$$t; done
 endif
 
-all: tom  ## (re)build everything
+all: $(NAME)  ## (re)build everything
 
 clean:  ## clean everything
 	rm -f *.o
-	rm -fr tom tom.dSYM
+	rm -fr $(NAME) $(NAME).dSYM
 	rm -f $(C_OBJ_TEST) $(C_EXE_TEST)
 
 help: ## display this help

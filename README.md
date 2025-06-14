@@ -21,18 +21,18 @@ clean                           clean everything
 help                            display this help
 test                            run all tests
 tests                           build all tests
-tom                             build main executable
+valgrind                        run all tests under valgrind (Linux only)
 ```
 
 Examples are in directory `examples`. One possible run could be:
 ```
-$ ./tom -f examples/germany.gram -g -t -s examples/germany.inp
+$ ./tomita -f examples/germany.gram -g -t -s examples/germany.inp
 ```
 
 Running with flag `-?` prints a usage message:
 ```
-$ ./tom -?
-Usage: ./tom -f file [-gts] file ...
+$ ./tomita -?
+Usage: ./tomita -f file [-gts] file ...
    -f  use this grammar file (required)
    -g  display input grammar
    -t  display parsing table
@@ -52,4 +52,4 @@ This code was not originally written by me,
 but I have made extensive modifications and (hopefully) improvements.
 The original code was found
 [here](http://www.cs.cmu.edu/afs/cs/project/ai-repository/ai/areas/nlp/parsing/tom/).
-Please see file `README-original.md` for more details.
+Please see file `docs/README-original.md` for more details.
