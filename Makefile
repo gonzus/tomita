@@ -12,10 +12,12 @@ AFLAGS += -g
 
 ifeq ($(OS),Darwin)
 # Linux also has sanitizers, but valgrind is more valuable there.
+# Note: thread and address cannot be used together
+# Note: memory is not supported on M1
 AFLAGS += -fsanitize=undefined
-AFLAGS += -fsanitize=address   # cannot be used with thread
-# AFLAGS += -fsanitize=thread  # cannot be used with address
-# AFLAGS += -fsanitize=memory  # not supported on M1
+AFLAGS += -fsanitize=address
+# AFLAGS += -fsanitize=thread
+# AFLAGS += -fsanitize=memory
 endif
 
 TAP_DIR = ../libtap

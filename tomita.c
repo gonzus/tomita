@@ -140,6 +140,14 @@ unsigned tomita_forest_show(Tomita* tomita) {
   return errors;
 }
 
+unsigned tomita_show(Tomita* tomita) {
+  unsigned errors = 0;
+  errors += tomita_grammar_show(tomita);
+  errors += tomita_parser_show(tomita);
+  errors += tomita_forest_show(tomita);
+  return errors;
+}
+
 unsigned tomita_forest_parse_from_slice(Tomita* tomita, Slice source) {
   unsigned errors = 0;
   do {

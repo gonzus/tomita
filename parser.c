@@ -21,7 +21,7 @@ struct Item {
 // a list of Item pointers, with a Pre symbol
 // TODO: what is Pre?
 struct Items {
-  Symbol* Pre;               // TODO
+  Symbol* Pre;               // ???
   struct Item** item_table;  // Item table
   unsigned item_cap;         //   capacity of table
 };
@@ -169,11 +169,12 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
 }
 
 void parser_show(Parser* parser) {
-  printf("#         accept:  ACCEPT seq\n");
-  printf("#   normal shift:  t => state\n");
-  printf("# epsilon reduce:  [A -> state]\n");
-  printf("#  normal reduce:  [A => B t C]\n");
-  printf("#           goto:  A goto state\n");
+  printf("%c%c PARSER\n", FORMAT_COMMENT, FORMAT_COMMENT);
+  printf("%c         accept:  ACCEPT seq\n", FORMAT_COMMENT);
+  printf("%c   normal shift:  t => state\n", FORMAT_COMMENT);
+  printf("%c epsilon reduce:  [A -> state]\n", FORMAT_COMMENT);
+  printf("%c  normal reduce:  [A => B t C]\n", FORMAT_COMMENT);
+  printf("%c           goto:  A goto state\n", FORMAT_COMMENT);
   unsigned conflict_sr = 0;
   unsigned conflict_rr = 0;
   for (unsigned S = 0; S < parser->state_cap; ++S) {

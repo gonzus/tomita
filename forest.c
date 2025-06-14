@@ -6,6 +6,7 @@
 #include "symtab.h"
 #include "parser.h"
 #include "forest.h"
+#include "tomita.h"
 
 struct ZNode {
   unsigned Val;
@@ -69,6 +70,7 @@ void forest_destroy(Forest* forest) {
 }
 
 void forest_show(Forest* forest) {
+  printf("%c%c FOREST\n", FORMAT_COMMENT, FORMAT_COMMENT);
   for (unsigned N = 0; N < forest->node_cap; ++N) {
     struct Node* Nd = &forest->node_table[N];
     if (Nd->symbol->literal) continue;

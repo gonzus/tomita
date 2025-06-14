@@ -27,7 +27,9 @@ typedef struct Token {
 // A work buffer for pointers to symbols, used to store rules.
 // Once a rule is completed, we make a call to symbol_insert_rule(), which
 // copies all the pointers into rules, and then reset the work buffer.
-#define MAX_SYM 0x100
+enum {
+  MAX_SYM = 0x100,
+};
 static Symbol* sym_buf[MAX_SYM];
 static Symbol** sym_pos;
 static unsigned in_comment;
@@ -58,6 +60,7 @@ void grammar_clear(Grammar* grammar) {
 }
 
 void grammar_show(Grammar* grammar) {
+  printf("%c%c GRAMMAR\n", FORMAT_COMMENT, FORMAT_COMMENT);
   printf("%c start\n", FORMAT_COMMENT);
   printf("@ %.*s\n", grammar->start->name.len, grammar->start->name.ptr);
 

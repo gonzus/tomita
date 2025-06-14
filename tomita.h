@@ -43,6 +43,9 @@ void tomita_destroy(Tomita* tomita);
 // Clear all contents of a Tomita.
 void tomita_clear(Tomita* tomita);
 
+// Show the contents of a Tomita.
+unsigned tomita_show(Tomita* tomita);
+
 // grammar functions
 unsigned tomita_grammar_show(Tomita* tomita);
 unsigned tomita_grammar_compile_from_slice(Tomita* tomita, Slice grammar);

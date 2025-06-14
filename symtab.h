@@ -26,6 +26,9 @@ void symtab_destroy(SymTab* symtab);
 // Clear all contents of a symbol table -- leave it as just created.
 void symtab_clear(SymTab* symtab);
 
+// Show all contents of a SymTab.
+void symtab_show(SymTab* symtab);
+
 // Look up a symbol with given name and literal, and create it if not found and we were told.
 // Return the found / created symbol, or null if not found and not created.
 Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, unsigned char insert);
