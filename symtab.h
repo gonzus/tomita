@@ -26,7 +26,7 @@ void symtab_destroy(SymTab* symtab);
 // Clear all contents of a symbol table -- leave it as just created.
 void symtab_clear(SymTab* symtab);
 
-// Show all contents of a SymTab.
+// Print a symbol table in a human-readable format.
 void symtab_show(SymTab* symtab);
 
 // Look up a symbol with given name and literal, and create it if not found and we were told.

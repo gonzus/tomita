@@ -44,26 +44,11 @@ void symtab_show(SymTab* symtab) {
   printf("table size: %u, symbol counter: %u, rules counter: %u\n",
          SYMTAB_HASH_MAX, symtab->symbol_counter, symtab->rules_counter);
   for (unsigned h = 0; h < SYMTAB_HASH_MAX; ++h) {
+    Symbol* bucket = symtab->table[h];
+    if (!bucket) continue;
+    printf("== bucket %u ==\n", h);
     for (Symbol* sym = symtab->table[h]; sym != 0; sym = sym->nxt_hash) {
-      char c = ' ';
-      if (sym == symtab->first) {
-        c = 'F';
-      }
-      if (sym == symtab->last) {
-        c = 'L';
-      }
-      printf("pos %4u, literal %1u, defined %1u, index %4u, name %c [%.*s] ->", h, sym->literal, sym->defined, sym->index, c, sym->name.len, sym->name.ptr);
-      // This is rather obscure... so be it.
-      for (unsigned j = 0; j < sym->rs_cap; ++j) {
-        RuleSet* rs = &sym->rs_table[j];
-        printf(" #%u:", rs->index);
-        for (Symbol** rules = rs->rules; *rules; ++rules) {
-          Symbol* rhs = *rules;
-          printf(" %u", rhs->index);
-        }
-        printf(";");
-      }
-      printf("\n");
+      symbol_show(sym, symtab->first, symtab->last);
     }
   }
 }

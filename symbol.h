@@ -30,6 +30,9 @@ Symbol* symbol_create(Slice name, unsigned literal, unsigned* counter);
 // Destroy a symbol created with symbol_create().
 void symbol_destroy(Symbol* symbol);
 
+// Print a symbol in a human-readable format.
+void symbol_show(Symbol* symbol, Symbol* first, Symbol* last);
+
 // Insert the right-hand side rule that defines a (non-terminal) symbol.
 void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP, unsigned* counter, unsigned index);
 

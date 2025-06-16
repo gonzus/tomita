@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <limits.h>
 #include "log.h"
 #include "mem.h"
@@ -20,6 +21,28 @@ void symbol_destroy(Symbol* symbol) {
   }
   FREE(symbol->rs_table);
   FREE(symbol);
+}
+
+void symbol_show(Symbol* symbol, Symbol* first, Symbol* last) {
+  char c = ' ';
+  if (symbol == first) {
+    c = 'F';
+  }
+  if (symbol == last) {
+    c = 'L';
+  }
+  printf("literal %1u, defined %1u, index %4u, %c [%.*s] ->", symbol->literal, symbol->defined, symbol->index, c, symbol->name.len, symbol->name.ptr);
+  // This is rather obscure... so be it.
+  for (unsigned j = 0; j < symbol->rs_cap; ++j) {
+    RuleSet* rs = &symbol->rs_table[j];
+    printf(" #%u:", rs->index);
+    for (Symbol** rules = rs->rules; *rules; ++rules) {
+      Symbol* rhs = *rules;
+      printf(" %u", rhs->index);
+    }
+    printf(";");
+  }
+  printf("\n");
 }
 
 void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP, unsigned* counter, unsigned index) {
