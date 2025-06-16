@@ -11,6 +11,7 @@
 static char* opt_grammar_file = 0;
 static int opt_grammar = 0;
 static int opt_stack = 0;
+static int opt_stdin = 0;
 static int opt_table = 0;
 
 static unsigned process_line(Tomita* tomita, Slice line) {
@@ -30,43 +31,33 @@ static unsigned process_line(Tomita* tomita, Slice line) {
   return errors;
 }
 
-static unsigned process_path(Tomita* tomita, const char* path) {
-  FILE* fp = 0;
-  do {
-    fp = fopen(path, "r");
-    if (!fp) {
-      LOG_WARN("could not open [%s] for reading", path);
-      break;
-    }
-
-    while (1) {
-      char buf[MAX_BUF];
-      if (!fgets(buf, MAX_BUF, fp)) break;
-      Slice raw = slice_from_string(buf, 0);
-      Slice line = slice_trim(raw);
-      process_line(tomita, line);
-    }
-  } while (0);
-  if (fp)
-    fclose(fp);
+static unsigned process_file(Tomita* tomita, FILE* fp) {
+  while (fp) {
+    char buf[MAX_BUF];
+    if (!fgets(buf, MAX_BUF, fp)) break;
+    Slice raw = slice_from_string(buf, 0);
+    Slice line = slice_trim(raw);
+    process_line(tomita, line);
+  }
   return 0;
 }
 
 static void show_usage(const char* prog) {
   printf(
       "Usage: %s -f file [-gts] file ...\n"
-      "   -f  use this grammar file (required)\n"
-      "   -g  display input grammar\n"
-      "   -t  display parsing table\n"
-      "   -s  display parsing stack\n"
-      "   -?  print this help\n",
+      "   -f      use this grammar file (required)\n"
+      "   -g      display input grammar\n"
+      "   -t      display parsing table\n"
+      "   -s      display parsing stack\n"
+      "   -n      use stdin for input\n"
+      "   -h, -?  print this help\n",
       prog
     );
 }
 
 int main(int argc, char **argv) {
   int c;
-  while ((c = getopt(argc, argv, "gtsf:?")) != -1) {
+  while ((c = getopt(argc, argv, "gtsnf:h?")) != -1) {
     switch (c) {
       case 'g':
         opt_grammar = 1;
@@ -77,9 +68,13 @@ int main(int argc, char **argv) {
       case 's':
         opt_stack = 1;
         break;
+      case 'n':
+        opt_stdin = 1;
+        break;
       case 'f':
         opt_grammar_file = optarg;
         break;
+      case 'h':
       case '?':
       default:
         show_usage(argv[0]);
@@ -137,9 +132,16 @@ int main(int argc, char **argv) {
 
     if (opt_table) tomita_parser_show(tomita);
 
-    for (int j = 0; j < argc; ++j) {
-      errors = process_path(tomita, argv[j]);
-      if (errors) break;
+    if (opt_stdin) {
+      errors = process_file(tomita, stdin);
+    } else {
+      for (int j = 0; j < argc; ++j) {
+        LOG_INFO("ARG %u [%s]", j, argv[j]);
+        FILE* fp = fopen(argv[j], "r");
+        errors = process_file(tomita, fp);
+        fclose(fp);
+        if (errors) break;
+      }
     }
   } while (0);
   buffer_destroy(&data);
