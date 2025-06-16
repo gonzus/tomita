@@ -31,7 +31,7 @@ static struct Items* items_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, u
 static void item_add(struct Items* Q, struct Item* It);
 static int item_compare(struct Item* A, struct Item* B);
 
-static void state_make(struct State* S, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new);
+static void state_make(struct ParserState* S, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new);
 static int state_add(Parser* parser, struct Items** items_table, unsigned int Size, struct Item** List);
 
 Parser* parser_create(SymTab* symtab) {
@@ -49,17 +49,17 @@ void parser_destroy(Parser* parser) {
 }
 
 void parser_clear(Parser* parser) {
-  if (parser->state_table) {
+  if (parser->states) {
     for (unsigned j = 0; j < parser->state_cap; ++j) {
-      struct State* state = &parser->state_table[j];
+      struct ParserState* state = &parser->states[j];
       FREE(state->er_table);
       FREE(state->rr_table);
       FREE(state->ss_table);
     }
-    FREE (parser->state_table);
+    FREE (parser->states);
   }
   buffer_clear(&parser->source);
-  parser->state_table = 0;
+  parser->states = 0;
   parser->state_cap = 0;
 }
 
@@ -127,22 +127,22 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
         --It->rhs_pos;
       }
     }
-    state_make(&parser->state_table[S], final, ERs, RRs, Xs);
+    state_make(&parser->states[S], final, ERs, RRs, Xs);
     unsigned R = 0;
     unsigned E = 0;
     for (unsigned Q = 0; Q < Qs; ++Q) {
       struct Item* It = QBuf[Q];
       if (*It->rhs_pos != 0 || It->lhs == 0) continue;
       if (*It->rs.rules == 0) {
-        parser->state_table[S].er_table[E++] = It->lhs;
+        parser->states[S].er_table[E++] = It->lhs;
       } else {
-        struct Reduce* Rd = &parser->state_table[S].rr_table[R++];
+        struct Reduce* Rd = &parser->states[S].rr_table[R++];
         Rd->lhs = It->lhs;
         Rd->rs = It->rs;
       }
     }
     for (unsigned X = 0; X < Xs; ++X) {
-      struct Shift* Sh = &parser->state_table[S].ss_table[X];
+      struct Shift* Sh = &parser->states[S].ss_table[X];
       Sh->symbol = XTab[X].Pre;
       Sh->state = state_add(parser, &items_table, XTab[X].item_cap, XTab[X].item_table);
     }
@@ -178,7 +178,7 @@ void parser_show(Parser* parser) {
   unsigned conflict_sr = 0;
   unsigned conflict_rr = 0;
   for (unsigned S = 0; S < parser->state_cap; ++S) {
-    struct State* St = &parser->state_table[S];
+    struct ParserState* St = &parser->states[S];
     printf("%d:\n", S);
 
     unsigned accept_count = 0;
@@ -291,7 +291,7 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
         state_tot = parser->state_cap;
         while (state_tot < state_cap) {
           LOG_DEBUG("current cap=%u, need %u", state_tot, state_cap);
-          TABLE_CHECK_GROW(parser->state_table, state_tot, 8, struct State);
+          TABLE_CHECK_GROW(parser->states, state_tot, 8, struct ParserState);
           state_tot += 8;
         }
         state_tot = 0;
@@ -305,32 +305,32 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
         pos = next_number(line, pos, &rr_cap);
         pos = next_number(line, pos, &er_cap);
         LOG_DEBUG("loaded state: final=%u, ss=%u, rr=%u, er=%u", final, ss_cap, rr_cap, er_cap);
-        state_make(&parser->state_table[state_tot-1], final, er_cap, rr_cap, ss_cap);
-        parser->state_table[state_tot-1].ss_cap = 0;
-        parser->state_table[state_tot-1].rr_cap = 0;
-        parser->state_table[state_tot-1].er_cap = 0;
+        state_make(&parser->states[state_tot-1], final, er_cap, rr_cap, ss_cap);
+        parser->states[state_tot-1].ss_cap = 0;
+        parser->states[state_tot-1].rr_cap = 0;
+        parser->states[state_tot-1].er_cap = 0;
         continue;
       }
       if (lead == FORMAT_SHIFT) {
-        int t = parser->state_table[state_tot-1].ss_cap++;
+        int t = parser->states[state_tot-1].ss_cap++;
         unsigned index = 0;
         unsigned state = 0;
         pos = next_number(line, pos, &index);
         pos = next_number(line, pos, &state);
         LOG_DEBUG("loaded shift: index=%u, state=%u", index, state);
-        struct Shift* shift = &parser->state_table[state_tot-1].ss_table[t];
+        struct Shift* shift = &parser->states[state_tot-1].ss_table[t];
         shift->symbol = symtab_find_symbol_by_index(parser->symtab, index);
         shift->state = state;
         continue;
       }
       if (lead == FORMAT_REDUCE) {
-        int t = parser->state_table[state_tot-1].rr_cap++;
+        int t = parser->states[state_tot-1].rr_cap++;
         unsigned lhs_index = 0;
         unsigned rs_index = 0;
         pos = next_number(line, pos, &lhs_index);
         pos = next_number(line, pos, &rs_index);
         LOG_DEBUG("loaded reduce: lhs=%u rs=%u", lhs_index, rs_index);
-        struct Reduce* reduce = &parser->state_table[state_tot-1].rr_table[t];
+        struct Reduce* reduce = &parser->states[state_tot-1].rr_table[t];
         Symbol* lhs = symtab_find_symbol_by_index(parser->symtab, lhs_index);
         assert(lhs);
         RuleSet* rs = symbol_find_ruleset_by_index(lhs, rs_index);
@@ -340,11 +340,11 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
         continue;
       }
       if (lead == FORMAT_EPSILON) {
-        int t = parser->state_table[state_tot-1].er_cap++;
+        int t = parser->states[state_tot-1].er_cap++;
         unsigned index = 0;
         pos = next_number(line, pos, &index);
         LOG_DEBUG("loaded epsilon: index=%u", index);
-        struct Symbol** epsilon = &parser->state_table[state_tot-1].er_table[t];
+        struct Symbol** epsilon = &parser->states[state_tot-1].er_table[t];
         Symbol* symbol = symtab_find_symbol_by_index(parser->symtab, index);
         *epsilon = symbol;
         continue;
@@ -374,7 +374,7 @@ unsigned parser_save_to_buffer(Parser* parser, Buffer* b) {
     buffer_format_print(b, "%c   reduce: lhs rule\n", FORMAT_COMMENT);
     buffer_format_print(b, "%c   epsilon: symbol\n", FORMAT_COMMENT);
     for (unsigned j = 0; j < parser->state_cap; ++j) {
-      struct State* state = &parser->state_table[j];
+      struct ParserState* state = &parser->states[j];
       buffer_format_print(b, "%c %u %u %u %u\n", FORMAT_STATE, state->final, state->ss_cap, state->rr_cap, state->er_cap);
       for (unsigned k = 0; k < state->ss_cap; ++k) {
         struct Shift* shift = &state->ss_table[k];
@@ -422,7 +422,7 @@ static int state_add(Parser* parser, struct Items** items_table, unsigned int Si
       return S;
     }
   }
-  TABLE_CHECK_GROW(parser->state_table, parser->state_cap, 8, struct State);
+  TABLE_CHECK_GROW(parser->states, parser->state_cap, 8, struct ParserState);
   TABLE_CHECK_GROW(*items_table, parser->state_cap, 8, struct Items);
   (*items_table)[parser->state_cap].Pre = 0;
   (*items_table)[parser->state_cap].item_cap = Size;
@@ -475,7 +475,7 @@ static void item_add(struct Items* Q, struct Item* It) {
   Q->item_table[I] = item_clone(It);
 }
 
-static void state_make(struct State* S, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new) {
+static void state_make(struct ParserState* S, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new) {
   S->final = final;
   S->er_cap = er_new;
   S->rr_cap = rr_new;

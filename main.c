@@ -8,26 +8,37 @@
 
 #define MAX_BUF (1024*1024)
 
-#define PUSH(context, v) (context)->stack[(context)->spos++] = v
-#define POP(context) (context)->stack[--(context)->spos]
+#if 1
+#define PUSH(c, v) do { (c)->stack[(c)->spos++] = v; if ((c)->spos >= 100) printf("FUCK PUSH\n"); } while (0)
+#define POP(c) ((c)->spos == 0 ? printf("FUCK POP\n") : (c)->stack[--(c)->spos])
+#define CHECK(c, l) assert((c)->spos >= (l))
+#else
+#define PUSH(c, v) do { } while (0)
+#define POP(c) 0
+#define CHECK(c, l) 0
+#endif
 
 typedef struct Context {
   int stack[100];
   int spos;
 } Context;
 
-static int new_token(void* ctx, Slice t) {
-  Context* context = (Context*) ctx;
+static int new_token(void* fct, Slice t) {
+  Context* context = (Context*) fct;
   PUSH(context, t.ptr[0]);
+  printf("new_token: [%c] (%.*s)\n", t.ptr[0], t.len, t.ptr);
   return 0;
 }
 
-static int reduce_rule(void* ctx, RuleSet* rs) {
-  Context* context = (Context*) ctx;
+static int reduce_rule(void* fct, RuleSet* rs) {
+  Context* context = (Context*) fct;
+  int s = context->spos;
   switch (rs->index) {
     case 0:
+      CHECK(context, 1);
       break;
     case 1: {
+      CHECK(context, 3);
       int t = POP(context);
       POP(context); // -
       int e = POP(context);
@@ -35,6 +46,7 @@ static int reduce_rule(void* ctx, RuleSet* rs) {
       break;
     }
     case 2: {
+      CHECK(context, 3);
       int t = POP(context);
       POP(context); // +
       int e = POP(context);
@@ -42,8 +54,10 @@ static int reduce_rule(void* ctx, RuleSet* rs) {
       break;
     }
     case 3:
+      CHECK(context, 1);
       break;
     case 4: {
+      CHECK(context, 3);
       int f = POP(context);
       POP(context); // *
       int t = POP(context);
@@ -51,6 +65,7 @@ static int reduce_rule(void* ctx, RuleSet* rs) {
       break;
     }
     case 5: {
+      CHECK(context, 3);
       int f = POP(context);
       POP(context); // /
       int t = POP(context);
@@ -58,11 +73,13 @@ static int reduce_rule(void* ctx, RuleSet* rs) {
       break;
     }
     case 6: {
-      int d = POP(context) - '0';
-      PUSH(context, d);
+      CHECK(context, 1);
+      int d = POP(context);
+      PUSH(context, d - '0');
       break;
     }
     case 7: {
+      CHECK(context, 3);
       POP(context); // )
       int e = POP(context);
       POP(context); // (
@@ -70,17 +87,22 @@ static int reduce_rule(void* ctx, RuleSet* rs) {
       break;
     }
     case 8: {
+      CHECK(context, 2);
       int f = POP(context);
       POP(context); // -
       PUSH(context, -f);
       break;
     }
+    default:
+      printf("WTF?!?\n");
+      break;
   }
+  printf("reduce rule %u; %u -> %u\n", rs->index, s, context->spos);
   return 0;
 }
 
-static int accept(void* ctx) {
-  Context* context = (Context*) ctx;
+static int accept(void* fct) {
+  Context* context = (Context*) fct;
   int v = POP(context);
   printf("Final value: %d\n", v);
   printf("Final stack pos: %d\n", context->spos);
@@ -194,6 +216,7 @@ int main(int argc, char **argv) {
     };
     timer_start(&timer);
     tomita = tomita_create(&cb, &context);
+    // tomita = tomita_create(0, 0);
     timer_stop(&timer);
     if (!tomita) {
       LOG_INFO("could not create tomita");

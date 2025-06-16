@@ -3,14 +3,6 @@
 #include "slice.h"
 #include "symbol.h"
 
-// a reference-counted subnode, part of a node's branch
-struct Subnode {
-  unsigned Size;
-  unsigned Cur;
-  unsigned ref_cnt;          // reference count
-  struct Subnode* next;      // link to next Subnode
-};
-
 // a node of a parse forest; it points to all possible parsed branches
 struct Node {
   struct Symbol* symbol;     // symbol pointed to by this node
@@ -21,9 +13,9 @@ struct Node {
 };
 
 typedef struct ForestCallbacks {
-  int (*new_token)(void* ctx, Slice t);
-  int (*reduce_rule)(void* ctx, RuleSet* rs);
-  int (*accept)(void* ctx);
+  int (*new_token)(void* fct, Slice t);
+  int (*reduce_rule)(void* fct, RuleSet* rs);
+  int (*accept)(void* fct);
 } ForestCallbacks;
 
 // a parse forest, which contains one or more parse trees
@@ -31,8 +23,8 @@ typedef struct Forest {
   struct Parser* parser;     // the parser used to create this parse forest
   int prepared;              // is this forest prepared, or was it cleaned up?
   unsigned position;         // sequential position value
-  ForestCallbacks* cb;       // callbacks to execute
-  void* ctx;                 // context passed to callbacks
+  ForestCallbacks* fcb;       // callbacks to execute
+  void* fct;                 // context passed to callbacks
 
   struct Node* root;         // root node of the forest
   struct Node* node_table;   // node table
@@ -56,7 +48,7 @@ typedef struct Forest {
 } Forest;
 
 // Create a forest for a given parser.
-Forest* forest_create(struct Parser* parser, ForestCallbacks* cb, void* ctx);
+Forest* forest_create(struct Parser* parser, ForestCallbacks* fcb, void* fct);
 
 // Destroy a forest created with forest_create().
 void forest_destroy(Forest* forest);

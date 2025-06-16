@@ -19,7 +19,7 @@ struct Reduce {
 };
 
 // a State in the parsing table
-struct State {
+struct ParserState {
   unsigned char final;       // is this a final state?
   struct Shift* ss_table;    // table of Shift actions
   unsigned ss_cap;           //   capacity of table
@@ -33,7 +33,7 @@ struct State {
 typedef struct Parser {
   Buffer source;             // copy of the source
   struct SymTab* symtab;     // the symbol table
-  struct State* state_table; // the state table
+  struct ParserState* states;// the state table
   unsigned state_cap;        //   capacity of state and items tables
 } Parser;
 
