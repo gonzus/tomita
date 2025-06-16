@@ -263,17 +263,21 @@ static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals) {
   if (symbol->rs_cap && !terminals) {
     // this is a proper non-terminal with rules
     int padding = symbol->name.len + 1;
-    printf("%.*s ", symbol->name.len, symbol->name.ptr);
     for (unsigned j = 0; j < symbol->rs_cap; ++j) {
       RuleSet* rs = &symbol->rs_table[j];
-      if (j > 0) pad(padding);
+      printf("%3u: ", rs->index);
+      if (j == 0) {
+        printf("%.*s ", symbol->name.len, symbol->name.ptr);
+      } else {
+        pad(padding);
+      }
       printf("%c", j == 0 ? GRAMMAR_EQ_RULE : GRAMMAR_OR);
       for (Symbol** rule = rs->rules; *rule; ++rule) {
         printf(" %.*s", (*rule)->name.len, (*rule)->name.ptr);
       }
       printf("\n");
     }
-    pad(padding);
+    pad(5 + padding);
     printf("%c\n", GRAMMAR_TERMINATOR);
     return;
   }

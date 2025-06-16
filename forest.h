@@ -1,6 +1,7 @@
 #pragma once
 
 #include "slice.h"
+#include "symbol.h"
 
 // a reference-counted subnode, part of a node's branch
 struct Subnode {
@@ -19,11 +20,19 @@ struct Node {
   unsigned sub_cap;          //   capacity of table
 };
 
+typedef struct ForestCallbacks {
+  int (*new_token)(void* ctx, Slice t);
+  int (*reduce_rule)(void* ctx, RuleSet* rs);
+  int (*accept)(void* ctx);
+} ForestCallbacks;
+
 // a parse forest, which contains one or more parse trees
 typedef struct Forest {
   struct Parser* parser;     // the parser used to create this parse forest
   int prepared;              // is this forest prepared, or was it cleaned up?
   unsigned position;         // sequential position value
+  ForestCallbacks* cb;       // callbacks to execute
+  void* ctx;                 // context passed to callbacks
 
   struct Node* root;         // root node of the forest
   struct Node* node_table;   // node table
@@ -47,7 +56,7 @@ typedef struct Forest {
 } Forest;
 
 // Create a forest for a given parser.
-Forest* forest_create(struct Parser* parser);
+Forest* forest_create(struct Parser* parser, ForestCallbacks* cb, void* ctx);
 
 // Destroy a forest created with forest_create().
 void forest_destroy(Forest* forest);

@@ -2,7 +2,6 @@
 #include "log.h"
 #include "grammar.h"
 #include "parser.h"
-#include "forest.h"
 #include "symtab.h"
 #include "tomita.h"
 
@@ -16,9 +15,11 @@ static void reset_parser(Tomita* tomita);
 static void reset_grammar(Tomita* tomita);
 static void reset_symtab(Tomita* tomita);
 
-Tomita* tomita_create(void) {
+Tomita* tomita_create(ForestCallbacks* cb, void* ctx) {
   Tomita* tomita = 0;
   MALLOC(Tomita, tomita);
+  tomita->cb = cb;
+  tomita->ctx = ctx;
   return tomita;
 }
 
@@ -202,7 +203,7 @@ static void reset_forest(Tomita* tomita) {
   clear_forest(tomita);
 
   LOG_DEBUG("tomita: creating forest");
-  tomita->forest = forest_create(tomita->parser);
+  tomita->forest = forest_create(tomita->parser, tomita->cb, tomita->ctx);
 }
 
 static void reset_parser(Tomita* tomita) {

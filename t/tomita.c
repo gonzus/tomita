@@ -18,7 +18,7 @@ static void test_tomita_build_and_parse_ok(void) {
     unsigned bytes = file_slurp(GRAMMAR_EXPR, &grammar_src);
     ok(bytes > 0, "grammar fixture can be read, it has %u bytes", bytes);
 
-    tomita = tomita_create();
+    tomita = tomita_create(0, 0);
     ok(tomita != 0, "can create a Tomita");
     if (!tomita) break;
 
@@ -48,7 +48,7 @@ static void test_tomita_build_without_grammar(void) {
   do {
     ok(1, "=== TESTING tomita without grammar ===");
 
-    tomita = tomita_create();
+    tomita = tomita_create(0, 0);
     ok(tomita != 0, "can create a Tomita");
     if (!tomita) break;
 
@@ -81,7 +81,7 @@ static void test_tomita_build_without_parser(void) {
     unsigned bytes = file_slurp(GRAMMAR_EXPR, &grammar_src);
     ok(bytes > 0, "grammar fixture can be read, it has %u bytes", bytes);
 
-    tomita = tomita_create();
+    tomita = tomita_create(0, 0);
     ok(tomita != 0, "can create a Tomita");
     if (!tomita) break;
 

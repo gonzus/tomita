@@ -1,6 +1,7 @@
 #pragma once
 
 #include "buffer.h"
+#include "forest.h"
 
 enum TomitaFormat {
   FORMAT_COMMENT     = '#',
@@ -32,10 +33,12 @@ typedef struct Tomita {
   struct Grammar* grammar;
   struct Parser* parser;
   struct Forest* forest;
+  ForestCallbacks* cb;
+  void* ctx;
 } Tomita;
 
 // Create an empty Tomita.
-Tomita* tomita_create(void);
+Tomita* tomita_create(ForestCallbacks* cb, void* ctx);
 
 // Destroy a Tomita created with tomita_create().
 void tomita_destroy(Tomita* tomita);

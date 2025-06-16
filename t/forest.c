@@ -52,7 +52,7 @@ static void test_build_forest(void) {
     errors = parser_build_from_grammar(parser, grammar);
     ok(errors == 0, "can build a parser from a grammar");
 
-    forest = forest_create(parser);
+    forest = forest_create(parser, 0, 0);
     ok(forest != 0, "can create a forest");
     if (!forest) break;
 

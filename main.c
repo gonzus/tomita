@@ -8,6 +8,85 @@
 
 #define MAX_BUF (1024*1024)
 
+#define PUSH(context, v) (context)->stack[(context)->spos++] = v
+#define POP(context) (context)->stack[--(context)->spos]
+
+typedef struct Context {
+  int stack[100];
+  int spos;
+} Context;
+
+static int new_token(void* ctx, Slice t) {
+  Context* context = (Context*) ctx;
+  PUSH(context, t.ptr[0]);
+  return 0;
+}
+
+static int reduce_rule(void* ctx, RuleSet* rs) {
+  Context* context = (Context*) ctx;
+  switch (rs->index) {
+    case 0:
+      break;
+    case 1: {
+      int t = POP(context);
+      POP(context); // -
+      int e = POP(context);
+      PUSH(context, e - t);
+      break;
+    }
+    case 2: {
+      int t = POP(context);
+      POP(context); // +
+      int e = POP(context);
+      PUSH(context, e + t);
+      break;
+    }
+    case 3:
+      break;
+    case 4: {
+      int f = POP(context);
+      POP(context); // *
+      int t = POP(context);
+      PUSH(context, t * f);
+      break;
+    }
+    case 5: {
+      int f = POP(context);
+      POP(context); // /
+      int t = POP(context);
+      PUSH(context, t / f);
+      break;
+    }
+    case 6: {
+      int d = POP(context) - '0';
+      PUSH(context, d);
+      break;
+    }
+    case 7: {
+      POP(context); // )
+      int e = POP(context);
+      POP(context); // (
+      PUSH(context, e);
+      break;
+    }
+    case 8: {
+      int f = POP(context);
+      POP(context); // -
+      PUSH(context, -f);
+      break;
+    }
+  }
+  return 0;
+}
+
+static int accept(void* ctx) {
+  Context* context = (Context*) ctx;
+  int v = POP(context);
+  printf("Final value: %d\n", v);
+  printf("Final stack pos: %d\n", context->spos);
+  return 0;
+}
+
 static char* opt_grammar_file = 0;
 static int opt_grammar = 0;
 static int opt_stack = 0;
@@ -105,8 +184,16 @@ int main(int argc, char **argv) {
     LOG_INFO("read %u bytes from grammar file [%s] in %luus", data.len, opt_grammar_file, timer_elapsed_us(&timer));
     LOG_INFO("\n%.*s", data.len, data.ptr);
 
+    ForestCallbacks cb = {
+      new_token,
+      reduce_rule,
+      accept,
+    };
+    Context context = {
+      .spos = 0,
+    };
     timer_start(&timer);
-    tomita = tomita_create();
+    tomita = tomita_create(&cb, &context);
     timer_stop(&timer);
     if (!tomita) {
       LOG_INFO("could not create tomita");
