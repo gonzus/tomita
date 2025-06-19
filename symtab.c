@@ -30,8 +30,8 @@ SymTab* symtab_create(void) {
 }
 
 void symtab_destroy(SymTab* symtab) {
-  numtab_destroy(symtab->idx2sym);
   symtab_clear(symtab);
+  numtab_destroy(symtab->idx2sym);
   FREE(symtab);
 }
 
@@ -47,6 +47,7 @@ void symtab_clear(SymTab* symtab) {
   symtab->first = symtab->last = 0;
   symtab->symbol_counter = 0;
   symtab->rules_counter = 0;
+  numtab_clear(symtab->idx2sym);
 }
 
 void symtab_show(SymTab* symtab) {

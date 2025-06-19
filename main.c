@@ -112,7 +112,8 @@ static int accept(void* fct) {
 }
 
 static char* opt_grammar_file = 0;
-static int opt_grammar = 0;
+static int opt_read_grammar = 0;
+static int opt_compiled_grammar = 0;
 static int opt_stack = 0;
 static int opt_stdin = 0;
 static int opt_table = 0;
@@ -149,7 +150,8 @@ static void show_usage(const char* prog) {
   printf(
       "Usage: %s -f file [-gts] file ...\n"
       "   -f      use this grammar file (required)\n"
-      "   -g      display input grammar\n"
+      "   -r      display read grammar\n"
+      "   -g      display compiled grammar\n"
       "   -t      display parsing table\n"
       "   -s      display parsing stack\n"
       "   -n      use stdin for input\n"
@@ -160,10 +162,13 @@ static void show_usage(const char* prog) {
 
 int main(int argc, char **argv) {
   int c;
-  while ((c = getopt(argc, argv, "gtsnf:h?")) != -1) {
+  while ((c = getopt(argc, argv, "rgtsnf:h?")) != -1) {
     switch (c) {
+      case 'r':
+        opt_read_grammar = 1;
+        break;
       case 'g':
-        opt_grammar = 1;
+        opt_compiled_grammar = 1;
         break;
       case 't':
         opt_table = 1;
@@ -205,8 +210,11 @@ int main(int argc, char **argv) {
       LOG_INFO("could not read grammar file [%s]", opt_grammar_file);
       break;
     };
-    LOG_INFO("read %u bytes from grammar file [%s] in %luus", data.len, opt_grammar_file, timer_elapsed_us(&timer));
-    LOG_INFO("\n%.*s", data.len, data.ptr);
+    LOG_INFO("read %u bytes from grammar file [%s] in %luus",
+             data.len, opt_grammar_file, timer_elapsed_us(&timer));
+    if (opt_read_grammar) {
+      LOG_INFO("read grammar:\n%.*s", data.len, data.ptr);
+    }
 
     ForestCallbacks cb = {
       new_token,
@@ -226,21 +234,29 @@ int main(int argc, char **argv) {
     };
     LOG_INFO("tomita created in %luus", timer_elapsed_us(&timer));
 
-    Slice raw = buffer_slice(&data);
-    Slice text_grammar = slice_trim(raw);
+    Slice source = buffer_slice(&data);
+    Slice text_grammar = slice_trim(source);
     timer_start(&timer);
     errors = tomita_grammar_compile_from_slice(tomita, text_grammar);
     timer_stop(&timer);
     if (errors) break;
     LOG_INFO("compiled grammar from source in %luus", timer_elapsed_us(&timer));
 
-    if (opt_grammar) tomita_grammar_show(tomita);
+    if (opt_compiled_grammar) tomita_grammar_show(tomita);
 
     timer_start(&timer);
     errors = tomita_parser_build_from_grammar(tomita);
     timer_stop(&timer);
     if (errors) break;
     LOG_INFO("built parser from grammar in %luus", timer_elapsed_us(&timer));
+
+#if 0
+    Buffer tmp; buffer_build(&tmp);
+    tomita_parser_write_to_buffer(tomita, &tmp);
+    tomita_clear(tomita);
+    tomita_parser_read_from_slice(tomita, buffer_slice(&tmp));
+    buffer_destroy(&tmp);
+#endif
 
     if (opt_table) tomita_parser_show(tomita);
 

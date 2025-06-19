@@ -26,7 +26,7 @@ struct Items {
   unsigned item_cap;         //   capacity of table
 };
 
-static struct Item* item_make(Symbol* LHS, Symbol** RHS, unsigned index);
+static struct Item* item_make(Parser* parser, Symbol* LHS, Symbol** RHS, unsigned index);
 static struct Item* item_clone(struct Item* It);
 static void item_add(struct Items* Its, struct Item* It);
 static int item_compare(struct Item* l, struct Item* r);
@@ -76,7 +76,7 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
 
   struct Item** Its = 0;
   MALLOC(struct Item*, Its);
-  Its[0] = item_make(0, StartR, 666);
+  Its[0] = item_make(parser, 0, StartR, 666);
 
   struct Items* items_table = 0;
   state_add(parser, &items_table, 1, Its);
@@ -123,7 +123,7 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
           REALLOC(struct Item*, QBuf, QMax);
         }
         for (unsigned R = 0; R < Pre->rs_cap; ++R, ++Qs) {
-          QBuf[Qs] = item_make(Pre, Pre->rs_table[R].rules, Pre->rs_table[R].index);
+          QBuf[Qs] = item_make(parser, Pre, Pre->rs_table[R].rules, Pre->rs_table[R].index);
         }
       }
       item_add(IS, It);
@@ -335,7 +335,15 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
         struct Reduce* reduce = &parser->states[state_tot-1].rr_table[t];
         Symbol* lhs = symtab_find_symbol_by_index(parser->symtab, lhs_index);
         assert(lhs);
+#if 1
+        // TODO: get from hash table
         RuleSet* rs = symbol_find_ruleset_by_index(lhs, rs_index);
+#else
+        Number* num = numtab_lookup(parser->idx2rs, rs_index, 0);
+        LOG_DEBUG("GONZO: parser %p: got num %p for index %u", parser, num, rs_index);
+        assert(num);
+        RuleSet* rs = num->ptr;
+#endif
         assert(rs);
         reduce->lhs = lhs;
         reduce->rs = *rs;
@@ -398,13 +406,21 @@ unsigned parser_save_to_buffer(Parser* parser, Buffer* b) {
   return errors;
 }
 
-static struct Item* item_make(Symbol* LHS, Symbol** RHS, unsigned index) {
+static struct Item* item_make(Parser* parser, Symbol* LHS, Symbol** RHS, unsigned index) {
+  UNUSED(parser);
   struct Item* It = 0;
   MALLOC(struct Item, It);
   REF(It);
   It->lhs = LHS;
   It->rs.index = index;
   It->rhs_pos = It->rs.rules = RHS;
+#if 0
+  // TODO: add to hash table
+  Number* num = numtab_lookup(parser->idx2rs, index, 1);
+  assert(num);
+  num->ptr = It;
+  LOG_DEBUG("GONZO: parser %p: set rs %p for index %u", parser, It, index);
+#endif
   return It;
 }
 
