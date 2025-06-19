@@ -34,11 +34,11 @@ static Symbol* sym_buf[MAX_SYM];
 static Symbol** sym_pos;
 static unsigned in_comment;
 
-static unsigned input_flush(Slice text, unsigned pos, Token* tok);
-static unsigned input_token(Slice text, unsigned pos, Token* tok);
 static unsigned grammar_check(Grammar* grammar);
 static void pad(unsigned padding);
 static void show_symbol(Grammar* grammar, Symbol* symbol, int terminals);
+static unsigned input_flush(Slice text, unsigned pos, Token* tok);
+static unsigned input_token(Slice text, unsigned pos, Token* tok);
 
 Grammar* grammar_create(SymTab* symtab) {
   Grammar* grammar = 0;

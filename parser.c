@@ -27,11 +27,12 @@ struct Items {
 };
 
 static struct Item* item_make(Symbol* LHS, Symbol** RHS, unsigned index);
+static struct Item* item_clone(struct Item* It);
+static void item_add(struct Items* Its, struct Item* It);
+static int item_compare(struct Item* l, struct Item* r);
 static struct Items* items_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, unsigned* XMax);
-static void item_add(struct Items* Q, struct Item* It);
-static int item_compare(struct Item* A, struct Item* B);
 
-static void state_make(struct ParserState* S, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new);
+static void state_make(struct ParserState* state, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new);
 static int state_add(Parser* parser, struct Items** items_table, unsigned int Size, struct Item** List);
 
 Parser* parser_create(SymTab* symtab) {
@@ -68,7 +69,6 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
   parser->symtab = grammar->symtab;
 
   // Create initial state
-  struct Items* items_table = 0;
   Symbol** StartR = 0;
   MALLOC_N(Symbol*, StartR, 2);
   StartR[0] = grammar->start;
@@ -78,6 +78,7 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
   MALLOC(struct Item*, Its);
   Its[0] = item_make(0, StartR, 666);
 
+  struct Items* items_table = 0;
   state_add(parser, &items_table, 1, Its);
 
   struct Items* XTab = 0;
@@ -111,21 +112,22 @@ unsigned parser_build_from_grammar(Parser* parser, Grammar* grammar) {
         } else {
           ++RRs;
         }
-      } else {
-        Symbol* Pre = *It->rhs_pos++;
-        struct Items* IS = items_get(Pre, &XTab, &Xs, &XMax);
-        if (IS->item_cap == 0) {
-          if ((Qs + Pre->rs_cap) > QMax) {
-            QMax = Qs + Pre->rs_cap;
-            REALLOC(struct Item*, QBuf, QMax);
-          }
-          for (unsigned R = 0; R < Pre->rs_cap; ++R, ++Qs) {
-            QBuf[Qs] = item_make(Pre, Pre->rs_table[R].rules, Pre->rs_table[R].index);
-          }
-        }
-        item_add(IS, It);
-        --It->rhs_pos;
+        continue;
       }
+
+      Symbol* Pre = *It->rhs_pos++;
+      struct Items* IS = items_get(Pre, &XTab, &Xs, &XMax);
+      if (IS->item_cap == 0) {
+        if ((Qs + Pre->rs_cap) > QMax) {
+          QMax = Qs + Pre->rs_cap;
+          REALLOC(struct Item*, QBuf, QMax);
+        }
+        for (unsigned R = 0; R < Pre->rs_cap; ++R, ++Qs) {
+          QBuf[Qs] = item_make(Pre, Pre->rs_table[R].rules, Pre->rs_table[R].index);
+        }
+      }
+      item_add(IS, It);
+      --It->rhs_pos;
     }
     state_make(&parser->states[S], final, ERs, RRs, Xs);
     unsigned R = 0;
@@ -406,28 +408,66 @@ static struct Item* item_make(Symbol* LHS, Symbol** RHS, unsigned index) {
   return It;
 }
 
-static int state_add(Parser* parser, struct Items** items_table, unsigned int Size, struct Item** List) {
-  for (unsigned S = 0; S < parser->state_cap; ++S) {
-    struct Items* IS = &(*items_table)[S];
-    if (IS->item_cap != Size) continue;
-    unsigned I = 0;
-    for (I = 0; I < IS->item_cap; ++I) {
-      if (item_compare(IS->item_table[I], List[I]) != 0) break;
-    }
-    if (I >= IS->item_cap) {
-      for (I = 0; I < Size; ++I) {
-        UNREF(List[I]);
-      }
-      FREE(List);
-      return S;
-    }
+static struct Item* item_clone(struct Item* It) {
+  struct Item* clone = 0;
+  MALLOC(struct Item, clone);
+  *clone = *It;
+
+  // careful with the clone's reference count!
+  clone->ref_cnt = 0;
+  REF(clone);
+
+  return clone;
+}
+
+static void item_add(struct Items* Its, struct Item* It) {
+  unsigned I = 0;
+  for (I = 0; I < Its->item_cap; ++I) {
+    int Diff = item_compare(Its->item_table[I], It);
+    if (Diff == 0) return; // item exists
+    if (Diff > 0) break;   // found first greater item
   }
-  TABLE_CHECK_GROW(parser->states, parser->state_cap, 8, struct ParserState);
-  TABLE_CHECK_GROW(*items_table, parser->state_cap, 8, struct Items);
-  (*items_table)[parser->state_cap].Pre = 0;
-  (*items_table)[parser->state_cap].item_cap = Size;
-  (*items_table)[parser->state_cap].item_table = List;
-  return parser->state_cap++;
+  TABLE_CHECK_GROW(Its->item_table, Its->item_cap, 4, struct Item*);
+  for (unsigned J = Its->item_cap++; J > I; --J) {
+    // make room for item
+    Its->item_table[J] = Its->item_table[J - 1];
+  }
+  // clone item into freed space
+  Its->item_table[I] = item_clone(It);
+}
+
+static int item_compare(struct Item* l, struct Item* r) {
+  int Diff = 0;
+
+  if (l->lhs == 0 && r->lhs == 0) {
+      Diff = 0;
+  } else if (l->lhs == 0) {
+      Diff = -1;
+  } else if (r->lhs == 0) {
+      Diff = +1;
+  } else {
+      Diff = l->lhs->index - r->lhs->index;
+  }
+  if (Diff != 0) return Diff;
+
+  Diff = (l->rhs_pos - l->rs.rules) - (r->rhs_pos - r->rs.rules);
+  if (Diff != 0) return Diff;
+
+  Symbol** lptr = 0;
+  Symbol** bptr = 0;
+  for (lptr = l->rs.rules, bptr = r->rs.rules; *lptr && *bptr; ++lptr, ++bptr) {
+    Diff = (*lptr)->index - (*bptr)->index;
+    if (Diff != 0) break;
+  }
+  if (*lptr == 0 && *bptr == 0) {
+    return 0;
+  } else if (*lptr == 0) {
+    return -1;
+  } else if (*bptr == 0) {
+    return +1;
+  }
+
+  return Diff;
 }
 
 static struct Items* items_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, unsigned* XMax) {
@@ -449,75 +489,40 @@ static struct Items* items_get(Symbol* Pre, struct Items** XTab, unsigned* Xs, u
   return &(*XTab)[X];
 }
 
-static struct Item* item_clone(struct Item* A) {
-  struct Item* B = 0;
-  MALLOC(struct Item, B);
-  *B = *A;
-
-  // careful with the clone's reference count!
-  B->ref_cnt = 0;
-  REF(B);
-
-  return B;
+static void state_make(struct ParserState* state, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new) {
+  state->final = final;
+  state->er_cap = er_new;
+  state->rr_cap = rr_new;
+  state->ss_cap = ss_new;
+  state->er_table = 0;
+  state->rr_table = 0;
+  state->ss_table = 0;
+  MALLOC_N(Symbol*      , state->er_table, er_new);
+  MALLOC_N(struct Reduce, state->rr_table, rr_new);
+  MALLOC_N(struct Shift , state->ss_table, ss_new);
 }
 
-static void item_add(struct Items* Q, struct Item* It) {
-  unsigned I = 0;
-  for (I = 0; I < Q->item_cap; ++I) {
-    int Diff = item_compare(Q->item_table[I], It);
-    if (Diff == 0) return;
-    if (Diff > 0) break;
+static int state_add(Parser* parser, struct Items** items_table, unsigned int Size, struct Item** List) {
+  for (unsigned S = 0; S < parser->state_cap; ++S) {
+    struct Items* IS = &(*items_table)[S];
+    if (IS->item_cap != Size) continue;
+    unsigned I = 0;
+    for (I = 0; I < IS->item_cap; ++I) {
+      if (item_compare(IS->item_table[I], List[I]) != 0) break;
+    }
+    if (I >= IS->item_cap) {
+      for (I = 0; I < Size; ++I) {
+        UNREF(List[I]);
+      }
+      FREE(List);
+      return S;
+    }
   }
-  TABLE_CHECK_GROW(Q->item_table, Q->item_cap, 4, struct Item*);
-  for (unsigned J = Q->item_cap++; J > I; --J) {
-    Q->item_table[J] = Q->item_table[J - 1];
-  }
-  Q->item_table[I] = item_clone(It);
-}
-
-static void state_make(struct ParserState* S, unsigned char final, unsigned er_new, unsigned rr_new, unsigned ss_new) {
-  S->final = final;
-  S->er_cap = er_new;
-  S->rr_cap = rr_new;
-  S->ss_cap = ss_new;
-  S->er_table = 0;
-  S->rr_table = 0;
-  S->ss_table = 0;
-  MALLOC_N(Symbol*      , S->er_table, er_new);
-  MALLOC_N(struct Reduce, S->rr_table, rr_new);
-  MALLOC_N(struct Shift , S->ss_table, ss_new);
-}
-
-static int item_compare(struct Item* A, struct Item* B) {
-  int Diff = 0;
-
-  if (A->lhs == 0 && B->lhs == 0) {
-      Diff = 0;
-  } else if (A->lhs == 0) {
-      Diff = -1;
-  } else if (B->lhs == 0) {
-      Diff = +1;
-  } else {
-      Diff = A->lhs->index - B->lhs->index;
-  }
-  if (Diff != 0) return Diff;
-
-  Diff = (A->rhs_pos - A->rs.rules) - (B->rhs_pos - B->rs.rules);
-  if (Diff != 0) return Diff;
-
-  Symbol** AP = 0;
-  Symbol** BP = 0;
-  for (AP = A->rs.rules, BP = B->rs.rules; *AP && *BP; ++AP, ++BP) {
-    Diff = (*AP)->index - (*BP)->index;
-    if (Diff != 0) break;
-  }
-  if (*AP == 0 && *BP == 0) {
-    return 0;
-  } else if (*AP == 0) {
-    return -1;
-  } else if (*BP == 0) {
-    return +1;
-  }
-
-  return Diff;
+  TABLE_CHECK_GROW(parser->states, parser->state_cap, 8, struct ParserState);
+  TABLE_CHECK_GROW(*items_table, parser->state_cap, 8, struct Items);
+  struct Items* IS = &(*items_table)[parser->state_cap];
+  IS->Pre = 0;
+  IS->item_cap = Size;
+  IS->item_table = List;
+  return parser->state_cap++;
 }

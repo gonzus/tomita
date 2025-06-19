@@ -14,6 +14,8 @@ enum {
 static Symbol* sym_buf[SYMTAB_MAX_SYM];
 static Symbol** sym_pos;
 
+static unsigned char hash(Slice string);
+
 SymTab* symtab_create(void) {
   SymTab* symtab = 0;
   MALLOC(SymTab, symtab);
@@ -51,15 +53,6 @@ void symtab_show(SymTab* symtab) {
       symbol_show(sym, symtab->first, symtab->last);
     }
   }
-}
-
-// TODO: (as in every project) use better hash function?
-static unsigned char hash(Slice string) {
-  int H = 0;
-  for (unsigned pos = 0; pos < string.len; ++pos) {
-    H = (H << 1) ^ string.ptr[pos];
-  }
-  return H & (SYMTAB_HASH_MAX - 1);
 }
 
 Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, unsigned char insert) {
@@ -201,4 +194,13 @@ Symbol* symtab_find_symbol_by_index(SymTab* symtab, unsigned index) {
     }
   }
   return 0;
+}
+
+// TODO: (as in every project) use a better hash function?
+static unsigned char hash(Slice string) {
+  int H = 0;
+  for (unsigned pos = 0; pos < string.len; ++pos) {
+    H = (H << 1) ^ string.ptr[pos];
+  }
+  return H & (SYMTAB_HASH_MAX - 1);
 }
