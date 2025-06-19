@@ -56,13 +56,16 @@ void grammar_destroy(Grammar* grammar) {
 
 void grammar_clear(Grammar* grammar) {
   buffer_clear(&grammar->source);
+  symtab_clear(grammar->symtab);
   grammar->start = 0;
 }
 
 void grammar_show(Grammar* grammar) {
   printf("%c%c GRAMMAR\n", FORMAT_COMMENT, FORMAT_COMMENT);
-  printf("%c start\n", FORMAT_COMMENT);
-  printf("@ %.*s\n", grammar->start->name.len, grammar->start->name.ptr);
+  if (grammar->start) {
+    printf("%c start\n", FORMAT_COMMENT);
+    printf("@ %.*s\n", grammar->start->name.len, grammar->start->name.ptr);
+  }
 
   printf("\n%c rules\n", FORMAT_COMMENT);
   for (Symbol* symbol = grammar->symtab->first; symbol != 0; symbol = symbol->nxt_list) {

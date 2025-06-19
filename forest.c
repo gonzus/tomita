@@ -240,7 +240,9 @@ unsigned forest_parse(Forest* forest, Slice text) {
       if (forest->fcb && forest->fct) {
         forest->fcb->accept(forest->fct);
       }
-      forest->root = &forest->node_table[V->List[0]->Index];
+      if (V->List && V->List[0]) {
+        forest->root = &forest->node_table[V->List[0]->Index];
+      }
       return 0;
     }
   }

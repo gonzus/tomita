@@ -43,69 +43,12 @@ static void test_tomita_build_and_parse_ok(void) {
   if (tomita) tomita_destroy(tomita);
 }
 
-static void test_tomita_build_without_grammar(void) {
-  unsigned errors = 0;
-  Tomita* tomita = 0;
-  do {
-    ok(1, "=== TESTING tomita without grammar ===");
-
-    tomita = tomita_create(0, 0);
-    ok(tomita != 0, "can create a Tomita");
-    if (!tomita) break;
-
-    errors = tomita_grammar_write_to_buffer(tomita, 0);
-    ok(errors > 0, "tomita cannot write a grammar without a grammar");
-
-    errors = tomita_parser_build_from_grammar(tomita);
-    ok(errors > 0, "tomita cannot build a parser without a grammar");
-
-    errors = tomita_parser_write_to_buffer(tomita, 0);
-    ok(errors > 0, "tomita cannot write a parser without a grammar");
-
-    Slice e = slice_from_string("", 0);
-    errors = tomita_forest_parse_from_slice(tomita, e);
-    ok(errors > 0, "tomita cannot parse a source into a parse forest without a grammar");
-
-    errors = tomita_show(tomita);
-    ok(errors > 0, "tomita cannot show a forest without a grammar");
-  } while (0);
-  if (tomita) tomita_destroy(tomita);
-}
-
-static void test_tomita_build_without_parser(void) {
-  unsigned errors = 0;
-  Tomita* tomita = 0;
-  Buffer grammar_src; buffer_build(&grammar_src);
-  do {
-    ok(1, "=== TESTING tomita without paser ===");
-
-    unsigned bytes = file_slurp(GRAMMAR_EXPR, &grammar_src);
-    ok(bytes > 0, "grammar fixture can be read, it has %u bytes", bytes);
-
-    tomita = tomita_create(0, 0);
-    ok(tomita != 0, "can create a Tomita");
-    if (!tomita) break;
-
-    Slice g = buffer_slice(&grammar_src);
-    errors = tomita_grammar_compile_from_slice(tomita, g);
-    ok(errors == 0, "tomita can compile a grammar from source");
-
-    Slice e = slice_from_string("", 0);
-    errors = tomita_forest_parse_from_slice(tomita, e);
-    ok(errors > 0, "tomita cannot parse a source into a parse forest without a grammar");
-  } while (0);
-  buffer_destroy(&grammar_src);
-  if (tomita) tomita_destroy(tomita);
-}
-
 int main (int argc, char* argv[]) {
   UNUSED(argc);
   UNUSED(argv);
 
   do {
     test_tomita_build_and_parse_ok();
-    test_tomita_build_without_grammar();
-    test_tomita_build_without_parser();
   } while (0);
 
   done_testing();

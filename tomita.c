@@ -6,15 +6,10 @@
 #include "forest.h"
 #include "tomita.h"
 
-static void clear_forest(Tomita* tomita);
-static void clear_parser(Tomita* tomita);
-static void clear_grammar(Tomita* tomita);
-static void clear_symtab(Tomita* tomita);
-
-static void reset_forest(Tomita* tomita);
-static void reset_parser(Tomita* tomita);
-static void reset_grammar(Tomita* tomita);
-static void reset_symtab(Tomita* tomita);
+static void ensure_forest(Tomita* tomita);
+static void ensure_parser(Tomita* tomita);
+static void ensure_grammar(Tomita* tomita);
+static void ensure_symtab(Tomita* tomita);
 
 Tomita* tomita_create(ForestCallbacks* cb, void* ctx) {
   Tomita* tomita = 0;
@@ -25,15 +20,40 @@ Tomita* tomita_create(ForestCallbacks* cb, void* ctx) {
 }
 
 void tomita_destroy(Tomita* tomita) {
-  tomita_clear(tomita);
+  if (!tomita) return;
+  if (tomita->forest) {
+    forest_destroy(tomita->forest);
+    tomita->forest = 0;
+  }
+  if (tomita->parser) {
+    parser_destroy(tomita->parser);
+    tomita->parser = 0;
+  }
+  if (tomita->grammar) {
+    grammar_destroy(tomita->grammar);
+    tomita->grammar = 0;
+  }
+  if (tomita->symtab) {
+    symtab_destroy(tomita->symtab);
+    tomita->symtab = 0;
+  }
   FREE(tomita);
 }
 
 void tomita_clear(Tomita* tomita) {
-  clear_forest(tomita);
-  clear_parser(tomita);
-  clear_grammar(tomita);
-  clear_symtab(tomita);
+  if (!tomita) return;
+  if (tomita->forest) {
+    forest_clear(tomita->forest);
+  }
+  if (tomita->parser) {
+    parser_clear(tomita->parser);
+  }
+  if (tomita->grammar) {
+    grammar_clear(tomita->grammar);
+  }
+  if (tomita->symtab) {
+    symtab_clear(tomita->symtab);
+  }
 }
 
 unsigned tomita_grammar_show(Tomita* tomita) {
@@ -52,7 +72,7 @@ unsigned tomita_grammar_show(Tomita* tomita) {
 unsigned tomita_grammar_compile_from_slice(Tomita* tomita, Slice grammar) {
   unsigned errors = 0;
   do {
-    reset_grammar(tomita);
+    ensure_grammar(tomita);
     errors += grammar_compile_from_slice(tomita->grammar, grammar);
   } while (0);
   return errors;
@@ -61,7 +81,7 @@ unsigned tomita_grammar_compile_from_slice(Tomita* tomita, Slice grammar) {
 unsigned tomita_grammar_read_from_slice(Tomita* tomita, Slice grammar) {
   unsigned errors = 0;
   do {
-    reset_grammar(tomita);
+    ensure_grammar(tomita);
     errors += grammar_load_from_slice(tomita->grammar, grammar);
   } while (0);
   return errors;
@@ -70,11 +90,11 @@ unsigned tomita_grammar_read_from_slice(Tomita* tomita, Slice grammar) {
 unsigned tomita_grammar_write_to_buffer(Tomita* tomita, Buffer* b) {
   unsigned errors = 0;
   do {
-    if (!tomita->grammar) {
-      LOG_DEBUG("tomita: cannot save null grammar");
+    if (!b) {
       ++errors;
       break;
     }
+    ensure_grammar(tomita);
     errors += grammar_save_to_buffer(tomita->grammar, b);
   } while (0);
   return errors;
@@ -96,12 +116,8 @@ unsigned tomita_parser_show(Tomita* tomita) {
 unsigned tomita_parser_build_from_grammar(Tomita* tomita) {
   unsigned errors = 0;
   do {
-    if (!tomita->grammar) {
-      LOG_DEBUG("tomita: cannot build parser from null grammar");
-      ++errors;
-      break;
-    }
-    reset_parser(tomita);
+    ensure_parser(tomita);
+    ensure_grammar(tomita);
     errors += parser_build_from_grammar(tomita->parser, tomita->grammar);
   } while (0);
   return errors;
@@ -110,7 +126,7 @@ unsigned tomita_parser_build_from_grammar(Tomita* tomita) {
 unsigned tomita_parser_read_from_slice(Tomita* tomita, Slice parser) {
   unsigned errors = 0;
   do {
-    reset_symtab(tomita);
+    ensure_parser(tomita);
     errors += parser_load_from_slice(tomita->parser, parser);
   } while (0);
   return errors;
@@ -119,11 +135,11 @@ unsigned tomita_parser_read_from_slice(Tomita* tomita, Slice parser) {
 unsigned tomita_parser_write_to_buffer(Tomita* tomita, Buffer* b) {
   unsigned errors = 0;
   do {
-    if (!tomita->parser) {
-      LOG_DEBUG("tomita: cannot save null parser");
+    if (!b) {
       ++errors;
       break;
     }
+    ensure_parser(tomita);
     errors += parser_save_to_buffer(tomita->parser, b);
   } while (0);
   return errors;
@@ -153,12 +169,7 @@ unsigned tomita_show(Tomita* tomita) {
 unsigned tomita_forest_parse_from_slice(Tomita* tomita, Slice source) {
   unsigned errors = 0;
   do {
-    if (!tomita->parser) {
-      LOG_DEBUG("tomita: cannot parse slice with null parser");
-      ++errors;
-      break;
-    }
-    reset_forest(tomita);
+    ensure_forest(tomita);
     errors = forest_parse(tomita->forest, source);
     if (!tomita->forest || !tomita->forest->root) {
       ++errors;
@@ -168,70 +179,29 @@ unsigned tomita_forest_parse_from_slice(Tomita* tomita, Slice source) {
   return errors;
 }
 
-static void clear_forest(Tomita* tomita) {
-  if (!tomita->forest) return;
-
-  LOG_DEBUG("tomita: clearing forest");
-  forest_destroy(tomita->forest);
-  tomita->forest = 0;
-}
-
-static void clear_parser(Tomita* tomita) {
-  if (!tomita->parser) return;
-
-  LOG_DEBUG("tomita: clearing parser");
-  parser_destroy(tomita->parser);
-  tomita->parser = 0;
-}
-
-static void clear_grammar(Tomita* tomita) {
-  if (!tomita->grammar) return;
-
-  LOG_DEBUG("tomita: clearing grammar");
-  grammar_destroy(tomita->grammar);
-  tomita->grammar = 0;
-}
-
-static void clear_symtab(Tomita* tomita) {
-  if (!tomita->symtab) return;
-
-  LOG_DEBUG("tomita: clearing symtab");
-  symtab_destroy(tomita->symtab);
-  tomita->symtab = 0;
-}
-
-static void reset_forest(Tomita* tomita) {
-  clear_forest(tomita);
-
-  LOG_DEBUG("tomita: creating forest");
+static void ensure_forest(Tomita* tomita) {
+  if (!tomita) return;
+  ensure_parser(tomita);
+  if (tomita->forest) return;
   tomita->forest = forest_create(tomita->parser, tomita->cb, tomita->ctx);
 }
 
-static void reset_parser(Tomita* tomita) {
-  clear_forest(tomita);
-  clear_parser(tomita);
-
-  LOG_DEBUG("tomita: creating parser");
+static void ensure_parser(Tomita* tomita) {
+  if (!tomita) return;
+  ensure_symtab(tomita);
+  if (tomita->parser) return;
   tomita->parser = parser_create(tomita->symtab);
 }
 
-static void reset_grammar(Tomita* tomita) {
-  clear_forest(tomita);
-  clear_parser(tomita);
-  clear_grammar(tomita);
-  clear_symtab(tomita);
-
-  LOG_DEBUG("tomita: creating symtab and grammar");
-  tomita->symtab = symtab_create();
+static void ensure_grammar(Tomita* tomita) {
+  if (!tomita) return;
+  ensure_symtab(tomita);
+  if (tomita->grammar) return;
   tomita->grammar = grammar_create(tomita->symtab);
 }
 
-static void reset_symtab(Tomita* tomita) {
-  clear_forest(tomita);
-  clear_parser(tomita);
-  clear_grammar(tomita);
-  clear_symtab(tomita);
-
-  LOG_DEBUG("tomita: creating symtab");
+static void ensure_symtab(Tomita* tomita) {
+  if (!tomita) return;
+  if (tomita->symtab) return;
   tomita->symtab = symtab_create();
 }
