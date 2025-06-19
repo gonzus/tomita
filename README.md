@@ -26,18 +26,20 @@ valgrind                        run all tests under valgrind (Linux only)
 
 Examples are in directory `examples`. One possible run could be:
 ```
-$ ./tomita -f examples/germany.gram -g -t -s examples/germany.inp
+$ echo '7 + 2' | ./tomita -n -f examples/expr.grammar
 ```
 
-Running with flag `-?` prints a usage message:
+Running with flag `-?` or `-h` prints a usage message:
 ```
 $ ./tomita -?
 Usage: ./tomita -f file [-gts] file ...
-   -f  use this grammar file (required)
-   -g  display input grammar
-   -t  display parsing table
-   -s  display parsing stack
-   -?  print this help
+   -f      use this grammar file (required)
+   -r      display read grammar
+   -g      display compiled grammar
+   -t      display parsing table
+   -s      display parsing stack
+   -n      use stdin for input
+   -h, -?  print this help
 ```
 
 If running on a Mac, it is recommended to set environment variable
