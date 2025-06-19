@@ -1,7 +1,9 @@
 #pragma once
 
-#include "buffer.h"
-#include "forest.h"
+#include "slice.h"
+
+struct Buffer;
+struct ForestCallbacks;
 
 enum TomitaFormat {
   FORMAT_COMMENT     = '#',
@@ -33,12 +35,12 @@ typedef struct Tomita {
   struct Grammar* grammar;
   struct Parser* parser;
   struct Forest* forest;
-  ForestCallbacks* cb;
+  struct ForestCallbacks* cb;
   void* ctx;
 } Tomita;
 
 // Create an empty Tomita.
-Tomita* tomita_create(ForestCallbacks* cb, void* ctx);
+Tomita* tomita_create(struct ForestCallbacks* cb, void* ctx);
 
 // Destroy a Tomita created with tomita_create().
 void tomita_destroy(Tomita* tomita);
@@ -53,13 +55,13 @@ unsigned tomita_show(Tomita* tomita);
 unsigned tomita_grammar_show(Tomita* tomita);
 unsigned tomita_grammar_compile_from_slice(Tomita* tomita, Slice grammar);
 unsigned tomita_grammar_read_from_slice(Tomita* tomita, Slice grammar);
-unsigned tomita_grammar_write_to_buffer(Tomita* tomita, Buffer* b);
+unsigned tomita_grammar_write_to_buffer(Tomita* tomita, struct Buffer* b);
 
 // parser functions
 unsigned tomita_parser_show(Tomita* tomita);
 unsigned tomita_parser_build_from_grammar(Tomita* tomita);
 unsigned tomita_parser_read_from_slice(Tomita* tomita, Slice parser);
-unsigned tomita_parser_write_to_buffer(Tomita* tomita, Buffer* b);
+unsigned tomita_parser_write_to_buffer(Tomita* tomita, struct Buffer* b);
 
 // forest functions
 unsigned tomita_forest_show(Tomita* tomita);

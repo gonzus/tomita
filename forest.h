@@ -1,7 +1,8 @@
 #pragma once
 
 #include "slice.h"
-#include "symbol.h"
+
+struct RuleSet;
 
 // a node of a parse forest; it points to all possible parsed branches
 struct Node {
@@ -14,7 +15,7 @@ struct Node {
 
 typedef struct ForestCallbacks {
   int (*new_token)(void* fct, Slice t);
-  int (*reduce_rule)(void* fct, RuleSet* rs);
+  int (*reduce_rule)(void* fct, struct RuleSet* rs);
   int (*accept)(void* fct);
 } ForestCallbacks;
 

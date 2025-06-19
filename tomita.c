@@ -3,6 +3,7 @@
 #include "grammar.h"
 #include "parser.h"
 #include "symtab.h"
+#include "forest.h"
 #include "tomita.h"
 
 static void clear_forest(Tomita* tomita);

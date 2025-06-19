@@ -2,6 +2,7 @@
 #include <limits.h>
 #include "log.h"
 #include "mem.h"
+#include "buffer.h"
 #include "tomita.h"
 #include "symbol.h"
 
@@ -56,13 +57,15 @@ void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP, unsigned
     int diff = 0;
     Symbol** A = 0;
     Symbol** B = 0;
-    for (A = SymBuf, B = symbol->rs_table[k].rules; !diff && *A && *B; ++A, ++B) {
+    for (A = SymBuf, B = symbol->rs_table[k].rules; *A && *B; ++A, ++B) {
       diff = (*A)->index - (*B)->index;
+      if (diff) break;
     }
     if (diff < 0) continue;
     if (diff > 0) break;
     if (*B == 0) {
-      if (*A == 0) return; else break;
+      if (*A == 0) return;
+      break;
     }
   }
 
@@ -91,7 +94,7 @@ void symbol_save_definition(Symbol* symbol, Buffer* b) {
 
 void symbol_save_rules(Symbol* symbol, Buffer* b) {
   LOG_DEBUG("rulesets for symbol %p index %u [%.*s]", symbol, symbol->index, symbol->name.len, symbol->name.ptr);
-  // TODO: use a more efficient algorithm here?
+  // NOTE:
   //
   // We want to print the rules in a predictable way, to ease comparison using
   // diff. One way of doing this is to sort the rules according to their index;
@@ -103,6 +106,8 @@ void symbol_save_rules(Symbol* symbol, Buffer* b) {
   // expected size of the rulesets seems to be rather small, this could actually
   // end up being *faster* than creating a temp array and using qsort() --
   // still, this needs measurement at some point.
+  //
+  // Finally, this is symbol_save_rules() -- usage is low anyway.
   unsigned prev = UINT_MAX;
   for (unsigned count = 0; count < symbol->rs_cap; ++count) {
     RuleSet* candidate = 0;
@@ -127,7 +132,10 @@ void symbol_save_rules(Symbol* symbol, Buffer* b) {
 }
 
 RuleSet* symbol_find_ruleset_by_index(Symbol* symbol, unsigned index) {
-  // TODO: make this more efficient
+  // NOTE: this could be made more efficient by storing a NumTab in each
+  // Symbol, which would map from the RuleSet index to the RuleSet pointer.
+  // However, given that a Symbol usually has at most 10 rule sets, it
+  // doesn't seem worthwhile.
   for (unsigned j = 0; j < symbol->rs_cap; ++j) {
     RuleSet* rs = &symbol->rs_table[j];
     if (rs->index == index) return rs;

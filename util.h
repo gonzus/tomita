@@ -1,6 +1,8 @@
 #pragma once
 
-#include "buffer.h"
+#include "slice.h"
+
+struct Buffer;
 
 // quiet down the compiler about an unused variable
 #define UNUSED(x) (void) x
@@ -10,7 +12,7 @@
 
 // Read the contents of a file given by path, into a Buffer.
 // Return the number of bytes read.
-unsigned file_slurp(const char* path, Buffer* b);
+unsigned file_slurp(const char* path, struct Buffer* b);
 
 // Write the contents of a slice into a file given by path.
 // Return the number of bytes written.

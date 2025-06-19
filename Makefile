@@ -46,6 +46,7 @@ C_SRC_LIB = \
 	grammar.c \
 	log.c \
 	memory.c \
+	numtab.c \
 	parser.c \
 	slice.c \
 	stb.c \

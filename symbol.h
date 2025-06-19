@@ -1,6 +1,8 @@
 #pragma once
 
-#include "buffer.h"
+#include "slice.h"
+
+struct Buffer;
 
 typedef struct RuleSet {
   unsigned index;          // sequential ruleset number
@@ -37,10 +39,10 @@ void symbol_show(Symbol* symbol, Symbol* first, Symbol* last);
 void symbol_insert_rule(Symbol* symbol, Symbol** SymBuf, Symbol** SymP, unsigned* counter, unsigned index);
 
 // Save the symbol's definitions into a buffer.
-void symbol_save_definition(Symbol* symbol, Buffer* b);
+void symbol_save_definition(Symbol* symbol, struct Buffer* b);
 
 // Save the symbol's rules into a buffer.
-void symbol_save_rules(Symbol* symbol, Buffer* b);
+void symbol_save_rules(Symbol* symbol, struct Buffer* b);
 
 // Find a ruleset for a symbol given its index.
 RuleSet* symbol_find_ruleset_by_index(Symbol* symbol, unsigned index);

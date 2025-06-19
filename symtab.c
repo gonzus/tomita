@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include "mem.h"
 #include "log.h"
+#include "numtab.h"
 #include "util.h"
+#include "buffer.h"
 #include "tomita.h"
+#include "symbol.h"
 #include "symtab.h"
 
 // A work buffer for pointers to symbols, used to store rules.
@@ -18,11 +21,16 @@ static unsigned char hash(Slice string);
 
 SymTab* symtab_create(void) {
   SymTab* symtab = 0;
-  MALLOC(SymTab, symtab);
+  do {
+    MALLOC(SymTab, symtab);
+    if (!symtab) break;
+    symtab->idx2sym = numtab_create();
+  } while (0);
   return symtab;
 }
 
 void symtab_destroy(SymTab* symtab) {
+  numtab_destroy(symtab->idx2sym);
   symtab_clear(symtab);
   FREE(symtab);
 }
@@ -71,6 +79,10 @@ Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, unsigne
 
   // must create and chain
   s = symbol_create(name, literal, &symtab->symbol_counter);
+  Number* num = numtab_lookup(symtab->idx2sym, s->index, 1);
+  assert(num);
+  num->ptr = s;
+
   s->nxt_hash = symtab->table[h];
   symtab->table[h] = s;
   if (symtab->first) {
@@ -89,7 +101,7 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
   do {
     unsigned total_symbols = 0;
     unsigned total_rules = 0;
-    unsigned s_seq = 0;
+    unsigned sym_seq = 0;
     Symbol* prev = 0;
 
     SliceLookup lookup_lines = {0};
@@ -115,9 +127,9 @@ unsigned symtab_load_from_slice(SymTab* symtab, Slice* text) {
         unsigned literal = 0;
         unsigned defined = 0;
         pos = next_number(line, pos, &index);
-        LOG_DEBUG("INDEX=%u, SEQ=%u", index, s_seq);
-        assert(index == s_seq);
-        ++s_seq;
+        LOG_DEBUG("INDEX=%u, SEQ=%u", index, sym_seq);
+        assert(index == sym_seq);
+        ++sym_seq;
         pos = next_string(line, pos, &name);
         pos = next_number(line, pos, &literal);
         pos = next_number(line, pos, &defined);
@@ -186,14 +198,10 @@ unsigned symtab_save_to_buffer(SymTab* symtab, Buffer* b) {
 }
 
 Symbol* symtab_find_symbol_by_index(SymTab* symtab, unsigned index) {
-  // TODO: make this more efficient
-  for (Symbol* symbol = symtab->first; symbol != 0; symbol = symbol->nxt_list) {
-    if (symbol->index == index) {
-      LOG_DEBUG("found symbol with index %u: %p [%.*s]", index, symbol, symbol->name.len, symbol->name.ptr);
-      return symbol;
-    }
-  }
-  return 0;
+  Number* num = numtab_lookup(symtab->idx2sym, index, 0);
+  assert(num);
+  LOG_DEBUG("NUMTAB %u => %p", index, num->ptr);
+  return num->ptr;
 }
 
 // TODO: (as in every project) use a better hash function?

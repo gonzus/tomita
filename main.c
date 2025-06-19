@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "log.h"
+#include "buffer.h"
 #include "timer.h"
 #include "util.h"
+#include "symbol.h"
 #include "forest.h"
 #include "tomita.h"
 

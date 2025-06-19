@@ -1,5 +1,7 @@
 #include <tap.h>
 #include "util.h"
+#include "buffer.h"
+#include "symbol.h"
 #include "symtab.h"
 
 static void test_build_symtab(void) {

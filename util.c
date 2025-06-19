@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include "stb_sprintf.h"
 #include "log.h"
+#include "buffer.h"
 #include "util.h"
 
 unsigned file_slurp(const char* path, Buffer* b) {

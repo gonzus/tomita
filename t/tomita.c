@@ -1,4 +1,5 @@
 #include <tap.h>
+#include "buffer.h"
 #include "util.h"
 #include "forest.h"
 #include "tomita.h"
