@@ -253,8 +253,10 @@ int main(int argc, char **argv) {
 #if 0
     Buffer tmp; buffer_build(&tmp);
     tomita_parser_write_to_buffer(tomita, &tmp);
+    Slice written = buffer_slice(&tmp);
+    LOG_INFO("wrote parser\n%.*s\n", written.len, written.ptr);
     tomita_clear(tomita);
-    tomita_parser_read_from_slice(tomita, buffer_slice(&tmp));
+    tomita_parser_read_from_slice(tomita, written);
     buffer_destroy(&tmp);
 #endif
 

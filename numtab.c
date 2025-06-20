@@ -4,7 +4,7 @@
 #include "tomita.h"
 #include "numtab.h"
 
-static unsigned murmurhash32_mix32(unsigned x);
+static unsigned triple32(unsigned x);
 
 NumTab* numtab_create(void) {
   NumTab* numtab = 0;
@@ -43,7 +43,7 @@ void numtab_show(NumTab* numtab) {
 
 Number* numtab_lookup(NumTab* numtab, unsigned val, unsigned char insert) {
   Number* num = 0;
-  unsigned char h = murmurhash32_mix32(val);
+  unsigned char h = triple32(val);
 
   // try to locate first
   for (num = numtab->table[h]; num != 0; num = num->next) {
@@ -62,12 +62,14 @@ Number* numtab_lookup(NumTab* numtab, unsigned val, unsigned char insert) {
   return num;
 }
 
-// TODO: (as in every project) use a better hash function?
-static unsigned murmurhash32_mix32(unsigned x) {
-    x ^= x >> 16;
-    x *= 0x85ebca6bU;
-    x ^= x >> 13;
-    x *= 0xc2b2ae35U;
-    x ^= x >> 16;
+// https://nullprogram.com/blog/2018/07/31/
+static unsigned triple32(unsigned x) {
+    x ^= x >> 17;
+    x *= 0xed5ad4bbU;
+    x ^= x >> 11;
+    x *= 0xac4c1b51U;
+    x ^= x >> 15;
+    x *= 0x31848babU;
+    x ^= x >> 14;
     return x;
 }

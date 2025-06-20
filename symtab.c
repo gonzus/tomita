@@ -17,7 +17,7 @@ enum {
 static Symbol* sym_buf[SYMTAB_MAX_SYM];
 static Symbol** sym_pos;
 
-static unsigned char hash(Slice string);
+static unsigned djb2(Slice s);
 
 SymTab* symtab_create(void) {
   SymTab* symtab = 0;
@@ -66,7 +66,7 @@ void symtab_show(SymTab* symtab) {
 
 Symbol* symtab_lookup(SymTab* symtab, Slice name, unsigned char literal, unsigned char insert) {
   Symbol* s = 0;
-  unsigned char h = hash(name);
+  unsigned char h = djb2(name);
 
   // try to locate first
   for (s = symtab->table[h]; s != 0; s = s->nxt_hash) {
@@ -205,11 +205,11 @@ Symbol* symtab_find_symbol_by_index(SymTab* symtab, unsigned index) {
   return num->ptr;
 }
 
-// TODO: (as in every project) use a better hash function?
-static unsigned char hash(Slice string) {
-  int H = 0;
-  for (unsigned pos = 0; pos < string.len; ++pos) {
-    H = (H << 1) ^ string.ptr[pos];
+// http://www.cse.yorku.ca/~oz/hash.html
+static unsigned djb2(Slice s) {
+  unsigned hash = 5381;
+  for (unsigned p = 0; p < s.len; ++p) {
+    hash = ((hash << 5) + hash) + s.ptr[p]; /* hash * 33 + c */
   }
-  return H & (SYMTAB_HASH_MAX - 1);
+  return hash;
 }

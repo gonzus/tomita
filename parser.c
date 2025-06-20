@@ -335,15 +335,7 @@ unsigned parser_load_from_slice(Parser* parser, Slice source) {
         struct Reduce* reduce = &parser->states[state_tot-1].rr_table[t];
         Symbol* lhs = symtab_find_symbol_by_index(parser->symtab, lhs_index);
         assert(lhs);
-#if 1
-        // TODO: get from hash table
         RuleSet* rs = symbol_find_ruleset_by_index(lhs, rs_index);
-#else
-        Number* num = numtab_lookup(parser->idx2rs, rs_index, 0);
-        LOG_DEBUG("GONZO: parser %p: got num %p for index %u", parser, num, rs_index);
-        assert(num);
-        RuleSet* rs = num->ptr;
-#endif
         assert(rs);
         reduce->lhs = lhs;
         reduce->rs = *rs;
@@ -414,13 +406,6 @@ static struct Item* item_make(Parser* parser, Symbol* LHS, Symbol** RHS, unsigne
   It->lhs = LHS;
   It->rs.index = index;
   It->rhs_pos = It->rs.rules = RHS;
-#if 0
-  // TODO: add to hash table
-  Number* num = numtab_lookup(parser->idx2rs, index, 1);
-  assert(num);
-  num->ptr = It;
-  LOG_DEBUG("GONZO: parser %p: set rs %p for index %u", parser, It, index);
-#endif
   return It;
 }
 
